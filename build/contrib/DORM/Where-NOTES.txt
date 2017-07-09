@@ -1,0 +1,90 @@
+OPS
+---
+
+eq
+ne
+ge
+gt
+le
+lt
+
+between
+in
+concat
+
+and
+or
+isnull
+isnotnull
+like
+not
+SHA
+
+
+
+TYPES
+-----
+
+boolean
+column
+default
+null
+string
+timestamp
+
+int
+int64
+uint
+uint64
+double
+
+
+
+EXCEPTIONS
+----------
+
+between boolean: NOT ALLOWED
+between column: no bind needed
+between timestamp: careful, might need DORM::DB::from_unixtime(...)
+
+IN column: no bind needed
+IN timestamp: might need DORM::DB::from_unixtime(...)
+
+
+
+INTERFACES (OPS)
+----------------
+AND: Where left, Where right
+AND: int argc, va-args...
+AND: vector<Where>
+
+OR: as for AND
+
+BETWEEN: C++TYPE min, C++TYPE max
+
+CONCAT: vector<string>
+CONCAT: vector<Where> <-- assuming we can add Where-subclasses like "column" or "string literal" but then what about SQL-literal like "DATE_SUB(NOW(), INTERVAL 1 MONTH)" ??
+
+IN: column, vector<C++TYPE>
+IN: column, list<C++TYPE>
+
+IS NOT NULL: column
+
+IS NULL: column
+
+LIKE: column, string
+
+NOT: Where
+
+SHA: column,    salt, salt-column, plaintext
+
+
+INTERFACES (TYPES)
+------------------
+
+boolean, string, double, int, int64, uint, uint64: column, C++TYPE
+
+column: column, column
+default: column    (2nd arg is effectively "DEFAULT")
+null: column		(2nd arg is effectively "NULL")
+timestamp: column, time_t    OR    column, struct timeval

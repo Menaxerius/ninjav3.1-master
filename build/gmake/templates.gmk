@@ -1,0 +1,81 @@
+OUTPUT_DIR=../output/templates
+
+SOLIB=libTemplates.so
+ALIB=libTemplates.a
+
+SRCS:=${shell find * -type f -name '*.ct' -print}
+INCS:=${patsubst %.ct, ${OUTPUT_DIR}/%.cxx, ${SRCS}}
+OBJS:=${patsubst %.ct, ${OUTPUT_DIR}/%.o, ${SRCS}}
+
+.SUFFIXES:
+.SUFFIXES: .ct .cpp .hpp .hxx .cxx .d
+.SECONDARY: ${INCS}
+
+CXXFLAGS+=-std=c++14 -g -fPIC -pipe -Wall -pthread
+
+ifdef DEBUG
+CXXFLAGS+=-ferror-limit=2 -O0 -fno-omit-frame-pointer -fsanitize=address
+else
+CXXFLAGS+=-O3
+endif
+
+INCDIRS=. ../objects ../output/objects ../handlers ../templates ../src ../output ../build/contrib/DORM/include ../build/include
+CXXFLAGS+=${addprefix -I,${INCDIRS}} -isystem /usr/local/include
+
+LDFLAGS=-shared -Wl,-soname,${SOLIB} -Wl,-rpath=output
+
+
+all: ${OUTPUT_DIR}/../${SOLIB} ${OUTPUT_DIR}/static-templates.cxx ${OUTPUT_DIR}/static-templates.hxx
+
+
+clean:
+	@echo '--> Cleaning'
+	@rm -fr ${OUTPUT_DIR} ${OUTPUT_DIR}/../${SOLIB}
+
+
+${OUTPUT_DIR}/%.d: ${OUTPUT_DIR}/%.cxx
+	@echo '--> Generating makefile $@ from $<'
+	@mkdir -p `dirname $@`
+	@echo -n '${OUTPUT_DIR}/' > $@
+	@${CXX} ${CXXFLAGS} -MM $< >> $@ || rm $@
+
+
+ifneq ($(MAKECMDGOALS),clean)
+DEPENDS=${patsubst %.ct, ${OUTPUT_DIR}/%.d, ${SRCS}}
+-include ${DEPENDS}
+endif
+
+
+${OUTPUT_DIR}/%.cxx: %.ct
+	@echo '--> Generating code for template $* from $<'
+	@mkdir -p `dirname $@`
+	@../build/bin/template-to-C++.pl -d ${OUTPUT_DIR} $<
+
+
+${OUTPUT_DIR}/%.o: ${OUTPUT_DIR}/%.cxx
+	@echo '--> Compiling template $* from $<'
+	@${CXX} ${CXXFLAGS} -c -o $@ $<
+
+
+${OUTPUT_DIR}/../${SOLIB}: ${OBJS}
+	@echo '--> Building shared template library'
+	@mkdir -p `dirname $@`
+	@${CXX} ${CXXFLAGS} ${LDFLAGS} -o $@ ${OBJS}
+
+
+${OUTPUT_DIR}/../${ALIB}: ${OBJS}
+	@echo '--> Building static template library'
+	@mkdir -p `dirname $@`
+	@rm -f $@
+	@ar -r $@ ${OBJS}
+
+
+${OUTPUT_DIR}/static-templates.cxx: ${addprefix ${OUTPUT_DIR}/,${TEMPLATE_H_FILES}}
+	@echo '--> Making a list of templates for static template handler (CXX)'
+	@find * -name '*.ct' -print | perl -n -e ' substr( $$_, -4 ) = ""; my $$c = $$_; $$c =~ s|/|::|g; print qq{\tStaticTemplateHandler::register_template<Templates::$$c>( "/$$_" );\n} ' > $@
+	@find * -name '*.ct' -print | perl -n -e ' substr( $$_, -4 ) = ""; my $$c = $$_; $$c =~ s|/|::|g; print qq{\tRegistryHandler::register_handler<StaticTemplateHandler>( "/$$_" );\n} ' >> $@
+
+
+${OUTPUT_DIR}/static-templates.hxx: ${addprefix ${OUTPUT_DIR}/,${TEMPLATE_H_FILES}}
+	@echo '--> Making a list of templates for static template handler (HXX)'
+	@find * -name '*.ct' -print | perl -n -e ' substr( $$_, -4 ) = ""; my $$c = $$_; print qq{#include "templates/$$c.hxx"\n} ' > $@

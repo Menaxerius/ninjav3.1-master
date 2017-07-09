@@ -1,0 +1,208 @@
+--- src/microhttpd/connection.c.orig	2016-06-02 07:47:01.000000000 +0100
++++ src/microhttpd/connection.c	2016-07-08 11:36:37.230082000 +0100
+@@ -523,6 +523,73 @@
+ #endif
+ 
+ 
++static void
++cleanup_connection (struct MHD_Connection *connection);
++/**
++ * Callback handler for upgraded connections
++ */
++static void
++action_handler (void *cls, enum MHD_UpgradeAction action, ...)
++{
++	if ( MHD_UPGRADE_ACTION_CLOSE == action ) {
++		struct MHD_Connection *connection = cls;
++
++		// our own version of MHD_connection_close
++		// but doesn't set connection->state to MHD_CONNECTION_CLOSED
++		// which can cause a race condition that adds this connection
++		// to the cleanup list TWICE
++		struct MHD_Daemon *daemon;
++
++		daemon = connection->daemon;
++		if (0 == (connection->daemon->options & MHD_USE_EPOLL_TURBO))
++			shutdown (connection->socket_fd,
++			  (MHD_YES == connection->read_closed) ? SHUT_WR : SHUT_RDWR);
++
++		if ( (NULL != daemon->notify_completed) &&
++		   (MHD_YES == connection->client_aware) )
++				daemon->notify_completed (daemon->notify_completed_cls,
++					  connection,
++					  &connection->client_context,
++					  MHD_REQUEST_TERMINATED_COMPLETED_OK);
++		connection->client_aware = MHD_NO;
++		// end our MHD_connection_close
++
++		MHD_pool_destroy (connection->pool);
++        connection->pool = NULL;
++        connection->read_buffer = NULL;
++        connection->read_buffer_size = 0;
++        connection->read_buffer_offset = 0;
++		connection->client_aware = MHD_NO;
++		connection->client_context = NULL;
++		connection->continue_message_write_offset = 0;
++		connection->responseCode = 0;
++		connection->headers_received = NULL;
++		connection->headers_received_tail = NULL;
++		connection->response_write_position = 0;
++		connection->have_chunked_upload = MHD_NO;
++		connection->method = NULL;
++		connection->url = NULL;
++		connection->write_buffer = NULL;
++		connection->write_buffer_size = 0;
++		connection->write_buffer_send_offset = 0;
++		connection->write_buffer_append_offset = 0;
++
++		connection->upgrade_handler = NULL;
++		connection->upgrade_handler_cls = NULL;
++		connection->upgrade_action_callback = NULL;
++		connection->upgrade_action_cls = NULL;
++
++		cleanup_connection(connection);
++
++		// return back to thread calling action handler
++		// MHD will clean up the closed connection
++		return;
++	}
++
++	// to do?
++}
++
++
+ /**
+  * Prepare the response buffer of this connection for
+  * sending.  Assumes that the response mutex is
+@@ -865,6 +932,7 @@
+   int must_add_chunked_encoding;
+   int must_add_keep_alive;
+   int must_add_content_length;
++  int must_add_upgrade;
+ 
+   EXTRA_CHECK (NULL != connection->version);
+   if (0 == connection->version[0])
+@@ -916,6 +984,7 @@
+   must_add_chunked_encoding = MHD_NO;
+   must_add_keep_alive = MHD_NO;
+   must_add_content_length = MHD_NO;
++  must_add_upgrade = MHD_NO;
+   switch (connection->state)
+     {
+     case MHD_CONNECTION_FOOTERS_RECEIVED:
+@@ -1029,6 +1098,19 @@
+            (0 == (connection->response->flags & MHD_RF_HTTP_VERSION_1_0_ONLY) ) &&
+            (MHD_YES == keepalive_possible (connection)) )
+         must_add_keep_alive = MHD_YES;
++
++      /* check for protocol upgrade */
++      if ( connection->responseCode == MHD_HTTP_SWITCHING_PROTOCOLS )
++      	  {
++    	  	  must_add_close = MHD_NO;
++    	  	  must_add_keep_alive = MHD_NO;
++    	  	  must_add_upgrade = MHD_YES;
++    	  	  connection->upgrade_handler = connection->response->upgrade_handler;
++    	  	  connection->upgrade_handler_cls = connection->response->upgrade_handler_cls;
++    	  	  connection->upgrade_action_callback = action_handler;
++    	  	  connection->upgrade_action_cls = connection;
++    	  }
++
+       break;
+     case MHD_CONNECTION_BODY_SENT:
+       response_has_keepalive = NULL;
+@@ -1041,11 +1123,13 @@
+     size += strlen ("Connection: close\r\n");
+   if (must_add_keep_alive)
+     size += strlen ("Connection: Keep-Alive\r\n");
++  if (must_add_upgrade)
++    size += strlen ("Connection: Upgrade\r\n");
+   if (must_add_chunked_encoding)
+     size += strlen ("Transfer-Encoding: chunked\r\n");
+   if (must_add_content_length)
+     size += content_length_len;
+-  EXTRA_CHECK (! (must_add_close && must_add_keep_alive) );
++  EXTRA_CHECK (! (must_add_close && must_add_keep_alive && must_add_upgrade) );
+   EXTRA_CHECK (! (must_add_chunked_encoding && must_add_content_length) );
+ 
+   for (pos = connection->response->first_header; NULL != pos; pos = pos->next)
+@@ -1085,6 +1169,14 @@
+ 	      strlen ("Connection: Keep-Alive\r\n"));
+       off += strlen ("Connection: Keep-Alive\r\n");
+     }
++  if (must_add_upgrade)
++    {
++      /* we must add the 'Connection: Upgrade' header */
++      memcpy (&data[off],
++              "Connection: Upgrade\r\n",
++	      strlen ("Connection: Upgrade\r\n"));
++      off += strlen ("Connection: Upgrade\r\n");
++    }
+   if (must_add_chunked_encoding)
+     {
+       /* we must add the 'Transfer-Encoding: chunked' header */
+@@ -1315,6 +1407,10 @@
+         case MHD_CONNECTION_CLOSED:
+ 	  connection->event_loop_info = MHD_EVENT_LOOP_INFO_CLEANUP;
+           return;       /* do nothing, not even reading */
++        case MHD_CONNECTION_UPGRADED:
++            /* do nothing, not even reading */
++      	  connection->event_loop_info = MHD_EVENT_LOOP_INFO_BLOCK;
++            break;
+         default:
+           EXTRA_CHECK (0);
+         }
+@@ -2191,6 +2287,7 @@
+         case MHD_CONNECTION_CONTINUE_SENT:
+         case MHD_CONNECTION_BODY_RECEIVED:
+         case MHD_CONNECTION_FOOTER_PART_RECEIVED:
++        case MHD_CONNECTION_UPGRADED:
+           /* nothing to do but default action */
+           if (MHD_YES == connection->read_closed)
+             {
+@@ -2778,6 +2875,35 @@
+           client_close = ((NULL != end) && (MHD_str_equal_caseless_(end, "close")));
+           MHD_destroy_response (connection->response);
+           connection->response = NULL;
++
++          end =
++            MHD_lookup_connection_value (connection, MHD_HEADER_KIND,
++                                         MHD_HTTP_HEADER_CONNECTION);
++          if ((NULL != connection->upgrade_handler) && (NULL != end)
++        		  && (NULL != strcasestr (end, "upgrade")))
++            {
++        	  connection->state = MHD_CONNECTION_UPGRADED;
++
++#if DEBUG_STATES
++        	  MHD_DLOG (daemon,
++        			  "%s: upgrading connection to new protocol\n",
++        			  __FUNCTION__);
++#endif
++
++        	  /* call upgrade handler */
++        	  connection->upgrade_handler(connection->upgrade_handler_cls, connection,
++        			  	  	  	  	  	  connection->socket_fd,
++        			  	  	  	  	  	  connection->upgrade_action_callback,
++        			  	  	  	  	  	  connection->upgrade_action_cls);
++
++
++        	  connection->thread_joined = MHD_YES;
++        	  connection->pid = 0;
++
++        	  // return so thread is exited
++        	  return MHD_YES;
++            }
++
+           if ( (NULL != daemon->notify_completed) &&
+                (MHD_YES == connection->client_aware) )
+           {
+@@ -2787,10 +2913,6 @@
+ 				      MHD_REQUEST_TERMINATED_COMPLETED_OK);
+             connection->client_aware = MHD_NO;
+           }
+-          end =
+-            MHD_lookup_connection_value (connection,
+-					 MHD_HEADER_KIND,
+-                                         MHD_HTTP_HEADER_CONNECTION);
+           if ( (MHD_YES == connection->read_closed) ||
+                (client_close) ||
+                ( (NULL != end) &&

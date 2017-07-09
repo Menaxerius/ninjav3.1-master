@@ -1,0 +1,36 @@
+Base name: Reward
+Class name: Reward
+Table name: Rewards
+Stanza: rewardID					serial
+Column: rewardID, matches SQL: serial, so CXXTYPE: uint64_t, CONNTYPE: UInt64, AUTO_INCREMENT
+Navigator to Reward (#include Reward.hpp) via reward()
+Stanza: accountID					bigint unsigned not null
+Column: accountID, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64, NOT_NULL
+Navigator to Account (#include Account.hpp) via account()
+Stanza: blockID						bigint unsigned not null
+Column: blockID, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64, NOT_NULL
+Navigator to Block (#include Block.hpp) via block()
+Stanza: bonusID						bigint unsigned
+Column: bonusID, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64
+Navigator to Bonus (#include Bonus.hpp) via bonus()
+Stanza: amount						bigint unsigned not null
+Column: amount, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64, NOT_NULL
+Stanza: is_paid						boolean not null default false
+Column: is_paid, matches SQL: boolean, so CXXTYPE: bool, CONNTYPE: Boolean, NOT_NULL, HAS_DEFAULT
+Stanza: tx_id						bigint unsigned
+Column: tx_id, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64
+Stanza: is_confirmed				boolean not null default false
+Column: is_confirmed, matches SQL: boolean, so CXXTYPE: bool, CONNTYPE: Boolean, NOT_NULL, HAS_DEFAULT
+Stanza: paid_at_block_id			bigint unsigned
+Column: paid_at_block_id, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64
+Stanza: primary key					(rewardID)
+Found PRIMARY KEY stanza, columns (1): rewardID
+Stanza: index						(is_paid, is_confirmed, accountID, blockID)
+Found INDEX stanza, columns (4): is_paid, is_confirmed, accountID, blockID
+Removing self-referential navigator reward() to Reward (us)
+Writing template ../build/contrib/DORM/templates/object_.hxx to /tmp/DORM-Kn2309.cpp
+Compiling template /tmp/DORM-Kn2309.cpp to create /tmp/DORM-Kn2309.aout
+Using template /tmp/DORM-Kn2309.aout to create ../output/objects/Reward_.hxx
+Writing template ../build/contrib/DORM/templates/object_.cxx to /tmp/DORM-0A4vcA.cpp
+Compiling template /tmp/DORM-0A4vcA.cpp to create /tmp/DORM-0A4vcA.aout
+Using template /tmp/DORM-0A4vcA.aout to create ../output/objects/Reward_.cxx

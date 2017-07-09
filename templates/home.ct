@@ -1,0 +1,173 @@
+<!doctype html>
+
+<%#include "config.hpp" %>
+ 
+<html>
+
+<head>
+	<link href="http://fonts.googleapis.com/css?family=Roboto:400,300italic,300,100italic,100,400italic,500" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" type="text/css" href="/css/main.css">
+	<script type="text/javascript" src="/js/stats.js" defer></script>
+	<title><%h=POOL_NAME%></title>
+</head>
+
+<body>
+	<div id="pool-info" class="container">
+		<div id="pool-name"><%h=POOL_NAME%></div>
+
+		<a href="http://explorer.burstnation.com/address/<%u=OUR_ACCOUNT_ID%>" target="_blank" class="blockex-link"><%h=OUR_ACCOUNT_RS%></a>
+		Assigned miners: <span id="num-assigned-miners"></span>
+		Active miners: <span id="num-active-miners"></span>
+	</div>
+
+
+	<div id="info" class="auto">
+		<div id="current-block-info" class="container">
+			<canvas id="timer"></canvas>
+	
+			<div id="current-block-height"></div>
+			<div id="current-block-scoop"></div>
+		</div>
+		
+		<div id="current-awards" class="container">
+			<table id="current-awards-table" class="awards-table">
+				<caption>Current Block Metrics</caption>
+				<tbody id="current-awards-list"></tbody>
+			</table>
+		</div>
+	
+	
+		<div id="previous-awards" class="container">
+			<table id="previous-awards-table" class="awards-table">
+				<caption>Previous Block Metrics</caption>
+				<tbody id="previous-awards-list"></tbody>
+			</table>
+		</div>
+	</div>
+
+	
+	<div id="multi-tab-info" class="container">
+		<ul class="tabs" id="tabs">
+			<li tab-id="current-shares" tab="active">Current Block Shares</li>
+			<li tab-id="recent-blocks">Recent Blocks</li>
+			<li tab-id="historic-shares">Historic Blocks Shares</li>
+			<li tab-id="pool-help">Pool Info</li>
+		</ul>
+	
+		<div id="current-shares" class="tab" tab="active">
+			<div id="current-shares-graph">
+				<canvas id="current-shares-chart"></canvas>
+			</div>
+			
+			<div id="current-shares-info">
+				<table id="current-shares-table" class="shares-table">
+					<caption>Current Block Shares (<%=CURRENT_BLOCK_REWARD_PERCENT%>% of block reward)</caption>
+					<thead>
+						<tr>
+							<th>Account</th>
+							<th>Miner</th>
+							<th>Deadline</th>
+							<th>Share</th>
+							<th>Reward</th>
+						</tr>
+					</thead>
+					<tbody id="current-shares-list"></tbody>
+				</table>
+			</div>
+		</div>
+			
+		<div id="recent-blocks" class="tab">
+			<table id="recent-blocks-table">
+				<caption>Recent Blocks</caption>
+				<thead>
+					<tr>
+						<th>Block</th>
+						<th>Forged By</th>
+						<th>Our Best Miner</th>
+					</tr>
+				</thead>
+				<tbody id="recent-blocks-list"></tbody>
+			</table>
+		</div>
+		
+		<div id="historic-shares" class="tab">
+			<div id="historic-shares-graph">
+				<canvas id="historic-shares-chart"></canvas>
+			</div>
+			
+			<div id="historic-shares-info">
+				<table id="historic-shares-table" class="shares-table">
+					<caption>Historic Blocks (<%=HISTORIC_BLOCK_COUNT%>) Shares  (<%=100 - CURRENT_BLOCK_REWARD_PERCENT%>% of block reward)</caption>
+					<thead>
+						<tr>
+							<th>Account</th>
+							<th>Capacity</th>
+							<th>Share</th>
+							<th>Reward</th>
+							<th>Payouts</th>
+						</tr>
+					</thead>
+					<tbody id="historic-shares-list"></tbody>
+				</table>
+			</div>
+		</div>
+		
+		<div id="pool-help" class="tab">
+			<h1>Pool Information</h1>
+			<ul>
+				<li>
+					Our maximum deadline is <config><%=DEADLINE_MAX%> seconds</config>, submissions with deadlines higher than this will be discarded with error codes 1007 or 1008.<br>
+					You might be able to set your miner to explicitly skip nonces with deadlines above this threshold.<br>
+					Some miners automatically make use of the <code>targetDeadline</code> field when communicating with the pool.
+				</li>
+				<li>
+					Miners should submit nonces to <config>port <%=LISTEN_PORT%></config>.<br>
+					This pool also supports the <code>getMiningInfo</code> API call on the same port, with added <code>targetDeadline</code> field.<br>
+				</li>
+				<li>
+					To mine here you need to set your "reward recipient" to <config><%h=OUR_ACCOUNT_RS%></config>.<br>
+					This costs 1 BURST and you need to wait 4 blocks before it takes effect.
+				</li>
+				<li>
+					Your miner colour is (currently) determined by your numeric account ID.
+				</li>
+				<li>
+					When the pool wins a block, <config><%=POOL_FEE_FRACTION * 100%>%</config> is deducted from the block reward for pool usage fees.<br>
+					Of the remaining reward, <config><%=CURRENT_BLOCK_REWARD_PERCENT%>%</config> is shared over miners who submitted nonces for the current block.<br>
+					The other <config><%=100 - CURRENT_BLOCK_REWARD_PERCENT%>%</config> is shared over miners who submitted nonces for the previous <config><%=HISTORIC_BLOCK_COUNT%> blocks</config>.<br>
+					For the current block, a miner's share of the (<config><%=CURRENT_BLOCK_REWARD_PERCENT%>%</config>) reward is inversely proportional to 
+						<code>(deadline + 1)<span style="vertical-align: super"><config><%=SHARE_POWER_FACTOR%></config></span></code>
+				</li>
+				<li>
+					Miner payouts are calculated after a minimum of <config><%=MIN_PAYOUT_BLOCK_DELAY%> blocks</config> after the pool wins that block.<br>
+					Miner payouts are <b>D</b>eferred until their total pending payout is at least <config><%=MINIMUM_PAYOUT / 100000000%> BURST</config>,
+						or the earliest pending payout is over <config><%=MAX_PAYOUT_BLOCK_DELAY%> blocks</config> old.<br>
+					<b>Q</b>ueued payouts are waiting to be sent to the BURST network.<br>
+					<b>U</b>nconfirmed payouts have been sent to the BURST network but haven't had 10 confirmations yet.<br>
+					Confirmed payouts are listed as <b>P</b>aid.<br>
+					If there are no unconfirmed payouts, and no blocks won by the pool which haven't been shared out yet, then the balance, minus deferred payouts, is swept into the pool's fee account.
+				</li>  
+				<li>
+					Blago's miner config snippet:
+					<pre>
+						"Mode" : "pool",
+						"Server" : "<%=POOL_HOSTNAME%>",
+						"Port": <%=LISTEN_PORT%>,
+						
+						"UpdaterAddr" : "<%=POOL_HOSTNAME%>",
+						"UpdaterPort": <%=LISTEN_PORT%>,
+						
+						"TargetDeadline": <%=DEADLINE_MAX%>,
+						
+						"SendInterval": 500,
+						"UpdateInterval": 1000,
+						
+						"UseFastRcv": false,
+					</pre>
+				</li>
+			</ul>
+		</div>
+	</div>
+</body>
+
+</html>

@@ -1,0 +1,266 @@
+HTML, BODY {
+	width:					100%;
+	height:					100%;
+	border:					0px;
+	padding:				0px;
+	margin:					0px;
+}
+
+
+BODY {
+	background:				rgba(50, 92, 132, 1);
+	font-family:			Roboto;
+	color:					white;
+	display:				flex;
+	flex-direction:			column;
+	justify-content:		space-between;
+	
+}
+
+
+TABLE {
+	width:					100%;
+}
+
+
+TABLE CAPTION {
+	background:				hsl( 180, 100%, 25% );
+	border-radius:			8px;
+	padding:				4px;
+}
+
+
+A:link, A:visited,
+A:hover, A:focus {
+	color:					inherit;
+	font-style:				italic;
+}
+
+A:link, A:visited {
+	text-decoration:		none;
+}
+
+A:hover, A:focus {
+	text-decoration:		underline;
+}
+
+
+.container {
+	box-sizing:				border-box;
+	border:					2px solid hsl( 200, 100%, 50% );
+	background:				hsl( 200, 100%, 20% );
+	border-radius:			8px;
+	padding:				8px;
+	font-size:				medium;
+}
+
+
+.auto {
+	display:				flex;
+	justify-content:		space-between;
+}
+
+.auto .container {
+	margin:					0px;
+}
+
+
+UL.tabs {
+	margin:					0px;
+	padding:				0px;
+	position:				absolute;
+}
+
+UL.tabs LI {
+	display:				inline-block;
+	border-radius:			4px;
+	border:					2px solid hsl( 200, 100%, 50% );
+	padding:				2px;
+	cursor:					pointer;
+}
+
+UL.tabs LI[tab=active] {
+	background:				hsl( 200, 100%, 30% );
+}
+
+.tab {
+	display:				none;
+	box-sizing:				border-box;
+	padding-top:			36px;
+	height:					100%;
+	text-align:				center;
+}
+
+
+.tab[tab=active] {
+	display:				flex;
+	justify-content:		space-between;
+	margin:					4px;
+}
+
+
+.blockex-link {
+	cursor:					pointer;
+}
+
+
+.deadline {
+	background-image:		url('/images/emoji_u23f1.png');
+	background-position:	left center;
+	background-size:		auto 100%;
+	background-repeat:		no-repeat;
+	background-color:		hsla(0, 100%, 100%, 0.3);
+	margin-left:			4px;
+	font-family:			monospace;
+	padding:				2px 4px 2px 24px;
+}
+
+
+#pool-info {
+	text-align:				center;
+	margin-bottom:			4px;
+	height:					auto;
+}
+
+
+#pool-name {
+	font-weight:			bold;
+	font-size:				bigger;
+	color:					hsl( 200, 100%, 50% );
+}
+
+
+#info {
+	flex:					1;
+	margin-bottom:			4px;
+}
+
+
+#current-block-info {
+	flex:					1;
+	height:					100%;
+	position:				relative;
+	display:				inline-flex;
+	align-items:			center;
+	justify-content:		center;
+}
+
+
+#timer {
+	width:					100%;
+	height:					100%;
+}
+
+
+#current-block-height {
+	position:				absolute;
+	left:					4px;
+	top:					50%;
+	white-space:			pre-wrap;
+	text-align:				center;
+}
+
+
+#current-block-height::before {
+	content:				"Block";
+}
+
+
+#current-block-scoop {
+	position:				absolute;
+	right:					4px;
+	top:					50%;
+	white-space:			pre-wrap;
+	text-align:				center;
+}
+
+
+#current-block-scoop::before {
+	content:				"Scoop";
+}
+
+
+#current-awards {
+	flex:					2;
+	height:					100%;
+	position:				relative;
+	display:				inline-block;
+	margin-left:			4px;
+}
+
+
+#previous-awards {
+	flex:					2;
+	height:					100%;
+	position:				relative;
+	display:				inline-block;
+	margin-left:			4px;
+}
+
+
+#multi-tab-info {
+	height:					65%;
+	position:				relative;
+}
+
+
+#current-shares-graph {
+	flex:					1;
+}
+
+
+#current-shares-info {
+	flex:					2;
+	overflow-y:				auto;
+	overflow-x:				hidden;
+}
+
+
+#historic-shares-graph {
+	flex:					1;
+}
+
+
+#historic-shares-info {
+	flex:					2;
+	overflow-y:				scroll;
+	overflow-x:				hidden;
+}
+
+
+#pool-help[tab=active] {
+	display:				block;
+	text-align:				left;
+	overflow-y:				hidden;
+	overflow-x:				hidden;
+}
+
+
+#pool-help H1 {
+	background:				hsl( 180, 100%, 25% );
+	border-radius:			8px;
+	padding:				2px 8px 2px 8px;
+	width:					auto;
+}
+
+
+#pool-help UL {
+	overflow-y:				scroll;
+	overflow-x:				hidden;
+}
+
+
+#pool-help LI {
+	margin-bottom:			8px;
+}
+
+
+#pool-help PRE {
+	white-space:			pre-line;
+	padding-left:			8px;
+}
+
+
+CONFIG {
+	color:					hsl( 200, 100%, 50% );
+}

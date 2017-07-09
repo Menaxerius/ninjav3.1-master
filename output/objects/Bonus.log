@@ -1,0 +1,23 @@
+Base name: Bonus
+Class name: Bonus
+Table name: Bonuses
+Stanza: bonusID						serial
+Column: bonusID, matches SQL: serial, so CXXTYPE: uint64_t, CONNTYPE: UInt64, AUTO_INCREMENT
+Navigator to Bonus (#include Bonus.hpp) via bonus()
+Stanza: tx_id						bigint unsigned not null
+Column: tx_id, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64, NOT_NULL
+Stanza: amount						bigint unsigned not null
+Column: amount, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64, NOT_NULL
+Stanza: seen_when					timestamp not null default current_timestamp
+Column: seen_when, matches SQL: timestamp, so CXXTYPE: DORM::Timestamp, CONNTYPE: String, NOT_NULL, HAS_DEFAULT
+Stanza: primary key					(bonusID)
+Found PRIMARY KEY stanza, columns (1): bonusID
+Stanza: index						(tx_id)
+Found INDEX stanza, columns (1): tx_id
+Removing self-referential navigator bonus() to Bonus (us)
+Writing template ../build/contrib/DORM/templates/object_.hxx to /tmp/DORM-M3fAgq.cpp
+Compiling template /tmp/DORM-M3fAgq.cpp to create /tmp/DORM-M3fAgq.aout
+Using template /tmp/DORM-M3fAgq.aout to create ../output/objects/Bonus_.hxx
+Writing template ../build/contrib/DORM/templates/object_.cxx to /tmp/DORM-cXOb31.cpp
+Compiling template /tmp/DORM-cXOb31.cpp to create /tmp/DORM-cXOb31.aout
+Using template /tmp/DORM-cXOb31.aout to create ../output/objects/Bonus_.cxx

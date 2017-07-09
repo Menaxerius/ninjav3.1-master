@@ -1,0 +1,21 @@
+--- src/microhttpd/daemon.c.orig	2016-06-02 10:25:02.000000000 +0100
++++ src/microhttpd/daemon.c	2016-07-08 12:20:30.540433000 +0100
+@@ -915,6 +915,18 @@
+   while ( (MHD_YES != con->daemon->shutdown) &&
+ 	  (MHD_CONNECTION_CLOSED != con->state) )
+     {
++	  // if we've changed protocl then the socket is out of our hands
++	  // so exit thread already
++	  if ( MHD_CONNECTION_UPGRADED == con->state )
++	    {
++	      if (NULL != con->response)
++	        {
++		  MHD_destroy_response (con->response);
++		  con->response = NULL;
++	        }
++	      return (MHD_THRD_RTRN_TYPE_) 0;
++	    }
++
+       unsigned const int timeout = con->daemon->connection_timeout;
+       tvp = NULL;
+ #if HTTPS_SUPPORT

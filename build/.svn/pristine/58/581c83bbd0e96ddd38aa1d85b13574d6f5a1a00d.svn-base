@@ -1,0 +1,71 @@
+--- src/microhttpd/internal.h.orig	2016-05-17 12:32:12.000000000 +0100
++++ src/microhttpd/internal.h	2016-07-08 11:49:18.349838000 +0100
+@@ -326,6 +326,16 @@
+    */
+   enum MHD_ResponseFlags flags;
+ 
++  /**
++   * Handler to take over after protocol upgrade
++   */
++  MHD_UpgradeHandler upgrade_handler;
++
++  /**
++   * Closure to pass to above upgrade handler
++   */
++  void *upgrade_handler_cls;
++
+ };
+ 
+ 
+@@ -456,16 +466,21 @@
+    */
+   MHD_CONNECTION_IN_CLEANUP = MHD_CONNECTION_CLOSED + 1,
+ 
++  /**
++   * 21: This connection is finished (only to be freed)
++   */
++  MHD_CONNECTION_UPGRADED = MHD_CONNECTION_IN_CLEANUP + 1,
++
+   /*
+    *  SSL/TLS connection states
+    */
+ 
+   /**
+-   * The initial connection state for all secure connectoins
++   * 22: The initial connection state for all secure connections
+    * Handshake messages will be processed in this state & while
+    * in the #MHD_TLS_HELLO_REQUEST state
+    */
+-  MHD_TLS_CONNECTION_INIT = MHD_CONNECTION_IN_CLEANUP + 1
++  MHD_TLS_CONNECTION_INIT = MHD_CONNECTION_UPGRADED + 1
+ 
+ };
+ 
+@@ -873,6 +888,27 @@
+    * Is the connection wanting to resume?
+    */
+   int resuming;
++
++  /**
++   * Handler to take over after protocol upgrade
++   */
++  MHD_UpgradeHandler upgrade_handler;
++
++  /**
++   * Closure to pass to above upgrade handler
++   */
++  void *upgrade_handler_cls;
++
++  /**
++   * Upgraded connection action callback
++   */
++  MHD_UpgradeActionCallback upgrade_action_callback;
++
++  /**
++   * Closure to be passed to above action handler
++   */
++  void *upgrade_action_cls;
++
+ };
+ 
+ /**

@@ -1,0 +1,94 @@
+2017-07-08 17:30:52.011016 --- START ---
+2017-07-08 17:30:52.016258 Blockchain monitoring started2017-07-08 17:30:52.016294 Block forger started
+
+2017-07-08 17:30:52.016262 Blockchain refreshing started
+2017-07-08 17:30:52.016437 Miner account refreshing started
+2017-07-08 17:30:52.016446 Miner reward payer started
+2017-07-08 17:30:52.016655 Bonus processor started
+2017-07-08 17:30:52.017362 Database trimming thread started
+2017-07-08 17:30:52.018715 Server ready!
+2017-07-08 17:30:52.253368 New block! Block: 379634, scoop: 4060
+2017-07-08 17:30:53.019235 Refreshing blocks 379629 to 379633 due to new block 379634
+2017-07-08 17:30:54.019427 Bonus processor ignoring transactions before Fri Jun  2 12:08:05 2017
+
+2017-07-08 17:39:19.546834 Finished checking for missing blocks at block 379133
+2017-07-08 17:43:29.506393 New block! Block: 379635, scoop: 3055
+2017-07-08 17:43:29.617261 Refreshing blocks 379630 to 379634 due to new block 379635
+2017-07-08 17:48:11.878351 New block! Block: 379636, scoop: 3038
+2017-07-08 17:48:12.145926 Refreshing blocks 379631 to 379635 due to new block 379636
+2017-07-08 18:04:37.770873 New block! Block: 379637, scoop: 2787
+2017-07-08 18:04:38.476905 Refreshing blocks 379632 to 379636 due to new block 379637
+2017-07-08 18:14:13.693318 New block! Block: 379638, scoop: 163
+2017-07-08 18:14:13.808844 Refreshing blocks 379633 to 379637 due to new block 379638
+2017-07-08 18:18:03.742314 New block! Block: 379639, scoop: 3148
+2017-07-08 18:18:03.939914 Refreshing blocks 379634 to 379638 due to new block 379639
+2017-07-08 18:18:36.223686 New block! Block: 379640, scoop: 1036
+2017-07-08 18:18:37.113046 Refreshing blocks 379635 to 379639 due to new block 379640
+2017-07-08 18:26:03.767835 New block! Block: 379641, scoop: 320
+2017-07-08 18:26:04.333298 Refreshing blocks 379636 to 379640 due to new block 379641
+2017-07-08 18:26:38.946367 New block! Block: 379642, scoop: 671
+2017-07-08 18:26:39.500759 Refreshing blocks 379637 to 379641 due to new block 379642
+2017-07-08 18:28:42.547789 New block! Block: 379643, scoop: 2411
+2017-07-08 18:28:42.674650 Refreshing blocks 379638 to 379642 due to new block 379643
+2017-07-08 18:30:56.403231 New block! Block: 379644, scoop: 853
+2017-07-08 18:30:56.792193 Refreshing blocks 379639 to 379643 due to new block 379644
+2017-07-08 18:34:58.166419 New block! Block: 379645, scoop: 3933
+2017-07-08 18:34:58.965900 Refreshing blocks 379640 to 379644 due to new block 379645
+2017-07-08 18:48:26.935825 New block! Block: 379646, scoop: 1804
+2017-07-08 18:48:27.329761 Refreshing blocks 379641 to 379645 due to new block 379646
+2017-07-08 18:48:58.234340 New block! Block: 379647, scoop: 2613
+2017-07-08 18:48:58.465052 Refreshing blocks 379642 to 379646 due to new block 379647
+2017-07-08 18:55:14.163031 New block! Block: 379648, scoop: 3045
+2017-07-08 18:55:14.662278 Refreshing blocks 379643 to 379647 due to new block 379648
+2017-07-08 18:55:51.816939 New block! Block: 379649, scoop: 3593
+2017-07-08 18:55:52.240658 Refreshing blocks 379644 to 379648 due to new block 379649
+2017-07-08 18:57:05.676288 New block! Block: 379650, scoop: 1167
+2017-07-08 18:57:05.875717 Refreshing blocks 379645 to 379649 due to new block 379650
+2017-07-08 19:00:40.812360 New block! Block: 379651, scoop: 1899
+2017-07-08 19:00:41.074735 Refreshing blocks 379646 to 379650 due to new block 379651
+2017-07-08 19:00:58.763822 New block! Block: 379652, scoop: 35
+2017-07-08 19:00:59.243758 Refreshing blocks 379647 to 379651 due to new block 379652
+2017-07-08 19:07:28.919584 New block! Block: 379653, scoop: 3361
+2017-07-08 19:07:29.535121 Refreshing blocks 379648 to 379652 due to new block 379653
+2017-07-08 19:21:17.751451 New block! Block: 379654, scoop: 393
+2017-07-08 19:21:17.857704 Refreshing blocks 379649 to 379653 due to new block 379654
+2017-07-08 19:24:08.173489 New block! Block: 379655, scoop: 351
+2017-07-08 19:24:08.287161 Refreshing blocks 379650 to 379654 due to new block 379655
+2017-07-08 19:26:16.208354 New block! Block: 379656, scoop: 3501
+2017-07-08 19:26:16.414769 Refreshing blocks 379651 to 379655 due to new block 379656
+2017-07-08 19:27:20.929204 New block! Block: 379657, scoop: 748
+2017-07-08 19:27:21.230592 Refreshing blocks 379652 to 379656 due to new block 379657
+2017-07-08 19:33:47.971560 New block! Block: 379658, scoop: 3642
+2017-07-08 19:33:48.252049 Refreshing blocks 379653 to 379657 due to new block 379658
+2017-07-08 19:38:37.342594 New block! Block: 379659, scoop: 3332
+2017-07-08 19:38:37.412872 Refreshing blocks 379654 to 379658 due to new block 379659
+2017-07-08 19:46:19.239924 New block! Block: 379660, scoop: 146
+2017-07-08 19:46:19.627465 Refreshing blocks 379655 to 379659 due to new block 379660
+2017-07-08 19:46:57.754835 New block! Block: 379661, scoop: 2314
+2017-07-08 19:46:57.814098 Refreshing blocks 379656 to 379660 due to new block 379661
+2017-07-08 19:56:02.755021 New block! Block: 379662, scoop: 1525
+2017-07-08 19:56:03.530222 Refreshing blocks 379657 to 379661 due to new block 379662
+2017-07-08 19:58:40.605829 New block! Block: 379663, scoop: 1751
+2017-07-08 19:58:40.682037 Refreshing blocks 379658 to 379662 due to new block 379663
+2017-07-08 20:01:33.951706 New block! Block: 379664, scoop: 1204
+2017-07-08 20:01:34.424773 Refreshing blocks 379659 to 379663 due to new block 379664
+2017-07-08 20:01:56.344347 New block! Block: 379665, scoop: 1673
+2017-07-08 20:01:56.507349 Refreshing blocks 379660 to 379664 due to new block 379665
+2017-07-08 20:02:48.590167 New block! Block: 379666, scoop: 1257
+2017-07-08 20:02:48.641203 Refreshing blocks 379661 to 379665 due to new block 379666
+2017-07-08 20:08:57.568968 New block! Block: 379667, scoop: 1282
+2017-07-08 20:08:57.865643 Refreshing blocks 379662 to 379666 due to new block 379667
+2017-07-08 20:12:01.558091 New block! Block: 379668, scoop: 62
+2017-07-08 20:12:01.800667 Refreshing blocks 379663 to 379667 due to new block 379668
+2017-07-08 20:13:09.589317 New block! Block: 379669, scoop: 827
+2017-07-08 20:13:09.891309 Refreshing blocks 379664 to 379668 due to new block 379669
+2017-07-08 20:15:45.651214 New block! Block: 379670, scoop: 1529
+2017-07-08 20:15:46.030580 Refreshing blocks 379665 to 379669 due to new block 379670
+2017-07-08 20:22:01.149744 New block! Block: 379671, scoop: 965
+2017-07-08 20:22:01.315701 Refreshing blocks 379666 to 379670 due to new block 379671
+2017-07-08 20:25:56.721004 New block! Block: 379672, scoop: 3091
+2017-07-08 20:25:57.477865 Refreshing blocks 379667 to 379671 due to new block 379672
+2017-07-08 20:32:19.972337 New block! Block: 379673, scoop: 1551
+2017-07-08 20:32:20.646657 Refreshing blocks 379668 to 379672 due to new block 379673
+2017-07-08 20:35:19.039031 New block! Block: 379674, scoop: 175
+2017-07-08 20:35:19.780831 Refreshing blocks 379669 to 379673 due to new block 379674

@@ -1,0 +1,50 @@
+Base name: Block
+Class name: Block
+Table name: Blocks
+Stanza: blockID						bigint unsigned not null unique
+Column: blockID, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64, NOT_NULL
+Navigator to Block (#include Block.hpp) via block()
+Stanza: first_seen_when				timestamp not null default current_timestamp
+Column: first_seen_when, matches SQL: timestamp, so CXXTYPE: DORM::Timestamp, CONNTYPE: String, NOT_NULL, HAS_DEFAULT
+Stanza: best_nonce_account_id		bigint unsigned
+Column: best_nonce_account_id, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64
+Stanza: generator_account_id		bigint unsigned
+Column: generator_account_id, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64
+Stanza: block_reward				bigint unsigned
+Column: block_reward, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64
+Stanza: is_our_block				boolean not null default false
+Column: is_our_block, matches SQL: boolean, so CXXTYPE: bool, CONNTYPE: Boolean, NOT_NULL, HAS_DEFAULT
+Stanza: has_been_shared				boolean not null default false
+Column: has_been_shared, matches SQL: boolean, so CXXTYPE: bool, CONNTYPE: Boolean, NOT_NULL, HAS_DEFAULT
+Stanza: base_target					bigint unsigned
+Column: base_target, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64
+Stanza: forged_when					timestamp null default null
+Column: forged_when, matches SQL: timestamp, so CXXTYPE: DORM::Timestamp, CONNTYPE: String, HAS_DEFAULT
+Stanza: scoop						int unsigned
+Column: scoop, matches SQL: int unsigned, so CXXTYPE: uint32_t, CONNTYPE: UInt
+Stanza: nonce						bigint unsigned
+Column: nonce, matches SQL: bigint unsigned, so CXXTYPE: uint64_t, CONNTYPE: UInt64
+Stanza: generation_signature		char(64)
+Column: generation_signature, matches SQL: char, so CXXTYPE: std::string, CONNTYPE: String
+Stanza: deadline					int unsigned
+Column: deadline, matches SQL: int unsigned, so CXXTYPE: uint32_t, CONNTYPE: UInt
+Stanza: our_best_deadline			int unsigned
+Column: our_best_deadline, matches SQL: int unsigned, so CXXTYPE: uint32_t, CONNTYPE: UInt
+Stanza: num_potential_miners		int unsigned
+Column: num_potential_miners, matches SQL: int unsigned, so CXXTYPE: uint32_t, CONNTYPE: UInt
+Stanza: num_rejected_nonces			int unsigned not null default 0
+Column: num_rejected_nonces, matches SQL: int unsigned, so CXXTYPE: uint32_t, CONNTYPE: UInt, NOT_NULL, HAS_DEFAULT
+Stanza: primary key					(blockID)
+Found PRIMARY KEY stanza, columns (1): blockID
+Stanza: index						(is_our_block, has_been_shared)
+Found INDEX stanza, columns (2): is_our_block, has_been_shared
+CHILD Navigator to Nonce(s) (#include Nonce.hpp) via block_nonces()
+CHILD Navigator to Share(s) (#include Share.hpp) via block_shares()
+CHILD Navigator to Reward(s) (#include Reward.hpp) via block_rewards()
+Removing self-referential navigator block() to Block (us)
+Writing template ../build/contrib/DORM/templates/object_.hxx to /tmp/DORM-Denfcz.cpp
+Compiling template /tmp/DORM-Denfcz.cpp to create /tmp/DORM-Denfcz.aout
+Using template /tmp/DORM-Denfcz.aout to create ../output/objects/Block_.hxx
+Writing template ../build/contrib/DORM/templates/object_.cxx to /tmp/DORM-BSibNg.cpp
+Compiling template /tmp/DORM-BSibNg.cpp to create /tmp/DORM-BSibNg.aout
+Using template /tmp/DORM-BSibNg.aout to create ../output/objects/Block_.cxx

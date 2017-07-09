@@ -1,0 +1,56 @@
+Packages required for build:
+
+clang v3.9 (v3.4 doesn't work and v4 and v5 aren't stable yet)
+gmake v4 or later
+libmicrohttpd v0.9.53
+mysql/mariadb v5.6 or later
+mysql-connector-c++ v1.1.7 or later
+perl
+curl
+gnutls
+gcrypt
+
+Dom's ORM from: https://sourceforge.net/projects/dom-s-orm/
+...which is automatically downloaded by the "build" toolchain
+...which comes from Dom at the moment
+
+
+DATABASE SETUP
+--------------
+
+BEFORE creating pool database, the server config needs to be changed.
+
+/etc/my.cnf.d/burstpool.cnf (or equivalent mysql/mariadb server config file):
+[server]
+character-set-server=utf8
+collation-server=utf8_unicode_ci
+init-connect="SET NAMES utf8"
+wait-timeout=600
+max-connections=400
+skip-networking="ON"
+
+If using /etc/my.cnf.d then check for this in /etc/my.cnf:
+#
+# include all files from the config directory
+#
+!includedir /etc/my.cnf.d
+
+
+Example burstpool database creation SQL commands, to be run as mysql's "root":
+
+create database burstpool;
+grant delete,insert,lock tables,select,update on burstpool.* to BURSTPOOLUSERNAME@localhost identified by 'BURSTPOOLPASSWORD';
+
+Where BURSTPOOLUSERNAME and BURSTPOOLPASSWORD are the same as those in config.js
+
+
+To create actual database, use supplied 'burstpool.sql' or use DORM's emit_object_SQL thusly:
+
+mysql --user=root -p --database=burstpool < burstpool.sql
+
+OR
+
+build/contrib/DORM/bin/emit_object_SQL objects/*.hpp | mysql --user=root -p --database=burstpool
+
+(You will be prompted for mysql's root password in either case)
+ 
