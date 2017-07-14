@@ -4,7 +4,7 @@
 #include "CryptoCoins.hpp"
 
 #include "JSON.hpp"
-
+#include <bsd/stdlib.h>
 #include <stdint.h>
 #include <string>
 #include <vector>
