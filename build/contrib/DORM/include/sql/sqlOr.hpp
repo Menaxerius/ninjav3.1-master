@@ -4,7 +4,7 @@
 #include "Where.hpp"
 
 #include <vector>
-#include "/usr/lib/clang/5.0.0/include/stdarg.h"
+#include "stdarg.h"
 
 namespace DORM {
 
