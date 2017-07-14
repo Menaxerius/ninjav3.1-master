@@ -1,6 +1,7 @@
 #ifndef INCLUDE__WEBSOCKETFRAME_HPP
 #define INCLUDE__WEBSOCKETFRAME_HPP
 
+#include <bsd/stdlib.h>
 #include <stdint.h>
 #include <string>
 
