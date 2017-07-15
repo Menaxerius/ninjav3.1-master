@@ -4,4 +4,8 @@
 *.hxx
 *.cxx
 *.mk
-*.log
+server.log
+server.pid
+server.log.old
+build/contrib/DORM/bin/*
+output/*
