@@ -3,11 +3,6 @@ server.log
 server.pid
 server.log.old
 
-# IDE
-CMakeLists.txt
-cmake-build-debug
-.idea
-
 # Dolphin
 .directory
 
@@ -20,7 +15,6 @@ cmake-build-debug
 *.d
 *.hxx
 *.cxx
-*.mk
 
 # Build outputs
 build/contrib/DORM/bin/*
@@ -28,3 +22,12 @@ output/*
 
 # User configs
 config.js
+
+# IDE
+CMakeLists.txt
+cmake-build-debug
+.idea
+CMakeCache.txt
+*CMakeFiles*
+cmake_install.cmake
+ninjapool.cbp
