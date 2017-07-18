@@ -3,26 +3,26 @@
 	"listenPort": "8124",
 	"documentRoot": "./static",
 	"databasePoolSize": "350",
-	"databaseURI": "unix:///var/lib/mysql/mysql.sock",
+	"databaseURI": "unix:///run/mysqld/mysqld.sock",
 	"databaseSchema": "burstpool",
-	"databaseUser": "ninja",
-	"databasePassword": "iaushd978h9fd2fh",
+	"databaseUser": "DBUSERNAME",
+	"databasePassword": "SECRETDBPASS",
 	
 	"pushURL": "https://api.pushover.net/1/messages.json",
-	"pushKey": "aWQfhxr3crixBnq3KmzjmaKyYeCHJu",
-	"pushRecipient": "gBa9nJ81CAZuq3ofMUQNS6rAvRcBHD",
+	"pushKey": "YOUROWNPUSHKEY",
+	"pushRecipient": "YOUROWNPUSHPASS",
 
-	"burstServers": [ "cwallet.burstmining.club:8125", "bwallet.burstmining.club:8125"],
+	"burstServers": [ "pascal.to:8135", "bwallet.burstmining.club:8125"],
 	"burstServerTimeout": 2,
 
 	"poolName": "Flex Pool",
 	"poolHostname": "pool.flexasset.club",
 
 	"accountUpdateTimeout": 600,
-        "poolNumericAccountId": "8767292822728581775",
-        "poolEncodedPassphrase": "QTo=SM6^faZo_eUSk6uLhaAPqa:;~hJmCo07<pTL1LjC",
+        "poolNumericAccountId": "YOURACCOUNTID",
+        "poolEncodedPassphrase": "YOURPOOLPASS",
 
-	"poolDeadlineLimit": 864000,
+	"poolDeadlineLimit": "259200000",
 	"poolDeadlineReallyBad": "83113904000022",
 
 	"historicBlockCount": 500,
@@ -44,6 +44,6 @@
 	"minimumPayoutBlockDelay": 4,
 
 	"bonusNumericAccountId": "2963154836836381611",
-	"bonusEncodedPassphrase": "044jK2>:KRL]:T<J64Wgg1Q;GA3;9O8mMN5h`M08S=Bv",
+	"bonusEncodedPassphrase": "YOURPASS",
 	"bonusMinimumThreshold": 20
 }
