@@ -1,11 +1,30 @@
+# logs
+server.log
+server.pid
+server.log.old
+
+# IDE
+CMakeLists.txt
+cmake-build-debug
+.idea
+
+# Dolphin
+.directory
+
+# SVN ?
+.svn
+
+# Compile time files
 *.o
 *.so
 *.d
 *.hxx
 *.cxx
 *.mk
-server.log
-server.pid
-server.log.old
+
+# Build outputs
 build/contrib/DORM/bin/*
 output/*
+
+# User configs
+config.js
