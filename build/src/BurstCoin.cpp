@@ -354,6 +354,7 @@ CryptoCoinKeyPair BurstCoin::generate_keypair() {
 			throw std::runtime_error("Failed to generate keypair");
 	
 		CryptoCoinKeyPair kp;
+		// TODO check passphrase variable shouldn't be going outside of scope.
 		kp.priv_key = passphrase;
 		kp.pub_address = response_json.get_string("accountRS");
 		
