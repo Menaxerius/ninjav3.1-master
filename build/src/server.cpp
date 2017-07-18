@@ -28,6 +28,8 @@
 #include <unistd.h>
 #include <grp.h>
 
+#include <limits.h>
+
 #include "pthread_np_shim.hpp"
 
 
@@ -416,7 +418,7 @@ static struct MHD_Daemon *init_daemon() {
 	// broken? (see below)
 	// unsigned int conn_timeout = 30;
     // default value was 4096
-    unsigned int conn_limit = UINTMAX_MAX;
+    unsigned int conn_limit = UINT_MAX;
     // default value was 1024
     unsigned int listen_queue_size = 10240;
 
