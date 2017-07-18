@@ -38,7 +38,7 @@ void account_updater() {
             } catch(const sql::SQLException &e) {
                 // Could not connect to db.
                 std::cerr  << ftime() << "[account_updater::account_updater] " << e.what() << std::endl;
-                std::cerr << ftime() << "[account_updater::account_updater] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+                std::cerr << ftime() << "[account_updater::account_updater] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
                 sleep(1);
             }
             ++counter;

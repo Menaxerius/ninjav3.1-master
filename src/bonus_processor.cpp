@@ -56,7 +56,7 @@ void bonus_processor() {
             } catch(const sql::SQLException &e) {
                 // Could not connect to db.
                 std::cerr  << ftime() << "[bonus_processor::bonus_processor] " << e.what() << std::endl;
-                std::cerr << ftime() << "[bonus_processor::bonus_processor] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+                std::cerr << ftime() << "[bonus_processor::bonus_processor] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
                 sleep(1);
             }
             ++counter;

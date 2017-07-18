@@ -54,7 +54,7 @@ void block_forger() {
 			} catch(const sql::SQLException &e) {
 				// Could not connect to db.
 				std::cerr  << ftime() << "[block_forger::block_forger] " << e.what() << std::endl;
-				std::cerr << ftime() << "[block_forger::block_forger] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+				std::cerr << ftime() << "[block_forger::block_forger] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
 				sleep(1);
 			}
 			++counter;

@@ -497,7 +497,7 @@ int main(int argc, char **argv, char **envp) {
             std::cerr << ftime() << "[server::server] " << e.what() << std::endl;
             sleep(1);
         }
-        std::cerr << ftime() << "[server::server] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+        std::cerr << ftime() << "[server::server] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
         ++counter;
         if(counter + 1 == DB_CONNECTION_ATTEMPT_COUNT){
             std::cerr << ftime() << "[server::server] DB connect failed..." << std::endl;

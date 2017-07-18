@@ -108,7 +108,7 @@ void blockchain_refresh() {
             } catch(const sql::SQLException &e) {
                 // Could not connect to db.
                 std::cerr  << ftime() << "[blockchain_refresh::blockchain_refresh] " << e.what() << std::endl;
-                std::cerr << ftime() << "[blockchain_refresh::blockchain_refresh] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+                std::cerr << ftime() << "[blockchain_refresh::blockchain_refresh] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
                 sleep(1);
             }
             ++counter;

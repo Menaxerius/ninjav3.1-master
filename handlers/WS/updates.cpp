@@ -323,7 +323,7 @@ void Handlers::WS::updates::websocket_alert() {
         } catch(const sql::SQLException &e) {
             // Could not connect to db.
             std::cerr << ftime() << "[updates::websocket_alert] " << e.what() << std::endl;
-            std::cerr << ftime() << "[updates::websocket_alert] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+            std::cerr << ftime() << "[updates::websocket_alert] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
             sleep(1);
         }
         ++counter;
