@@ -483,9 +483,8 @@ int main(int argc, char **argv, char **envp) {
 
 	// uses config
     // Check db connection
-    short i = 0;
-    bool is_connected = false;
-    while (!is_connected){
+    short counter = 0;
+    while (true){
         try{
             DORM::DB::connect( DB_URI, DB_USER, DB_PASSWORD, DB_SCHEMA );
             break;
@@ -499,8 +498,8 @@ int main(int argc, char **argv, char **envp) {
             sleep(1);
         }
         std::cerr << ftime() << "[server::server] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
-        ++i;
-        if(i + 1 == DB_CONNECTION_ATTEMPT_COUNT){
+        ++counter;
+        if(counter + 1 == DB_CONNECTION_ATTEMPT_COUNT){
             std::cerr << ftime() << "[server::server] DB connect failed..." << std::endl;
             throw;
         }

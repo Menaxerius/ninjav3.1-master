@@ -311,9 +311,8 @@ void Handlers::WS::updates::websocket_alert() {
 
 
     // Check db connection
-    short i = 0;
-    bool is_connected = false;
-    while (!is_connected){
+    short counter = 0;
+    while (true){
         try{
             DORM::DB::check_connection();
             break;
@@ -327,8 +326,8 @@ void Handlers::WS::updates::websocket_alert() {
             std::cerr << ftime() << "[updates::websocket_alert] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
             sleep(1);
         }
-        ++i;
-        if(i + 1 == DB_CONNECTION_ATTEMPT_COUNT){
+        ++counter;
+        if(counter + 1 == DB_CONNECTION_ATTEMPT_COUNT){
             std::cerr << ftime() << "[updates::websocket_alert] DB connect failed..." << std::endl;
             throw;
         }

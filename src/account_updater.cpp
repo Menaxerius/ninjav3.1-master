@@ -24,10 +24,9 @@ void account_updater() {
 
 		// we need DB connection from here on
         // Check db connection
-        short i = 0;
-        bool is_connected = false;
+        short counter = 0;
         bool is_continue = false;
-        while (!is_connected){
+        while (true){
             try{
                 DORM::DB::check_connection();
                 break;
@@ -42,8 +41,8 @@ void account_updater() {
                 std::cerr << ftime() << "[account_updater::account_updater] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
                 sleep(1);
             }
-            ++i;
-            if(i + 1 == DB_CONNECTION_ATTEMPT_COUNT){
+            ++counter;
+            if(counter + 1 == DB_CONNECTION_ATTEMPT_COUNT){
                 std::cerr << ftime() << "[account_updater::account_updater] DB connect failed..." << std::endl;
                 throw;
             }
