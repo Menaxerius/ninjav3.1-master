@@ -94,26 +94,38 @@ void Handlers::WS::updates::update_historic_shares() {
 		unpaid_rewards.oldest_first(true);
 		unpaid_rewards.search();
 
-		bool ok_to_pay = false;
-		uint64_t sum_amount = 0;
+        bool ok_to_pay = false;
+        uint64_t sum_amount = 0;
+        // Sum of delayed payouts older than MAX_PAYOUT_BLOCK_DELAY
+        uint64_t late_sum_amount = 0;
+        uint64_t deferred_amount = 0;
 
-		while( auto reward = unpaid_rewards.result() ) {
-			// check whether miner has been waiting for ages
-            // Don't sum if not reah max delay
-			if ( reward->defined_blockID() && reward->blockID() < latest_blockID - MAX_PAYOUT_BLOCK_DELAY ){
-				ok_to_pay = true;
-				sum_amount += reward->amount();
-			}
-		}
-
-		if ( sum_amount >= MINIMUM_PAYOUT ){
-            ok_to_pay = true;
+        while( auto reward = unpaid_rewards.result() ) {
+            // check whether miner has been waiting for ages
+            // sum delayed payouts seperately.
+            if (reward->defined_blockID() && reward->blockID() < latest_blockID - MAX_PAYOUT_BLOCK_DELAY) {
+                late_sum_amount = reward->amount();
+            } else {
+                sum_amount += reward->amount();
+            }
         }
 
-		if (ok_to_pay)
-			share_json.add_uint64( "queuedPayouts", sum_amount );
-		else if (sum_amount > 0)
-			share_json.add_uint64( "deferredPayouts", sum_amount );
+        if ( sum_amount + late_sum_amount >= MINIMUM_PAYOUT ){
+            ok_to_pay = true;
+            sum_amount += late_sum_amount;
+        } else if(late_sum_amount > 0) {
+            // If there is delayed payouts pay just those
+            ok_to_pay = true;
+            deferred_amount = sum_amount;
+            sum_amount = late_sum_amount;
+        } else {
+            deferred_amount = sum_amount;
+        }
+
+        if (ok_to_pay)
+            share_json.add_uint64( "queuedPayouts", sum_amount );
+        if (deferred_amount > 0)
+            share_json.add_uint64( "deferredPayouts", deferred_amount );
 
 		const uint64_t unconfirmed = Reward::total_unconfirmed_by_accountID( share->accountID() );
 

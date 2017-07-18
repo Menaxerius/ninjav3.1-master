@@ -170,25 +170,35 @@ void reward_payer() {
 			if (BaseHandler::time_to_die)
 				return;	// quicker process exit
 
-			const uint64_t accountID = map_it.first;
-			const auto &rewards = map_it.second;
-			bool ok_to_pay = false;
-			uint64_t sum_amount = 0;
+            const uint64_t accountID = map_it.first;
+            const auto &rewards = map_it.second;
+            bool ok_to_pay = false;
+            uint64_t sum_amount = 0;
+            // Sum of delayed payouts older than MAX_PAYOUT_BLOCK_DELAY
+            uint64_t late_sum_amount = 0;
 
 			DORM::Transaction db_tx_guard;
 
-			for( auto &reward : rewards ) {
-				// check whether miner has been waiting for ages
-                // Don't sum if not reah max delay
-				if ( reward->defined_blockID() && reward->blockID() < latest_blockID - MAX_PAYOUT_BLOCK_DELAY ){
-                    ok_to_pay = true;
+            for( auto &reward : rewards ) {
+                // check whether miner has been waiting for ages
+                // sum delayed payouts seperately.
+                if (reward->defined_blockID() && reward->blockID() < latest_blockID - MAX_PAYOUT_BLOCK_DELAY) {
+                    late_sum_amount = reward->amount();
+                } else {
                     sum_amount += reward->amount();
                 }
-			}
-
-			if ( sum_amount >= MINIMUM_PAYOUT ){
-                ok_to_pay = true;
             }
+
+            if ( sum_amount + late_sum_amount >= MINIMUM_PAYOUT ){
+                ok_to_pay = true;
+                sum_amount += late_sum_amount;
+            } else if(late_sum_amount > 0) {
+                // If there is delayed payouts pay just those
+                ok_to_pay = true;
+                deferred_amount += sum_amount;
+                sum_amount = late_sum_amount;
+            }
+
 
 			if ( !ok_to_pay ) {
 				deferred_amount += sum_amount + PAYMENT_SEND_FEE;
