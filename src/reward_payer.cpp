@@ -42,10 +42,32 @@ void reward_payer() {
 		uint64_t latest_blockID = BlockCache::latest_blockID;
 
 		// we need DB connection from here on
-		try {
-			DORM::DB::check_connection();
-		} catch (const DORM::DB::connection_issue &e) {
-			// DB being hammered by miners - try again in a moment
+		// Check db connection
+		short i = 0;
+		bool is_connected = false;
+		bool is_continue = false;
+		while (!is_connected){
+			try{
+				DORM::DB::check_connection();
+				break;
+			} catch (const DORM::DB::connection_issue &e) {
+				// DB being hammered by miners - try again in a moment
+				std::cerr  << ftime() << "[reward_payer::reward_payer] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
+				is_continue = true;
+				break;
+			} catch(const sql::SQLException &e) {
+				// Could not connect to db.
+				std::cerr  << ftime() << "[reward_payer::reward_payer] " << e.what() << std::endl;
+				std::cerr << ftime() << "[reward_payer::reward_payer] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+				sleep(1);
+			}
+			++i;
+			if(i + 1 == DB_CONNECTION_ATTEMPT_COUNT){
+				std::cerr << ftime() << "[reward_payer::reward_payer] DB connect failed..." << std::endl;
+				throw;
+			}
+		}
+		if(is_continue){
 			continue;
 		}
 

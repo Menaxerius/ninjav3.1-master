@@ -33,6 +33,7 @@ bool HTTP_LOGGING = false;
 uid_t RUN_AS_UID = -1;
 gid_t RUN_AS_GID = -1;
 
+DB_CONNECTION_ATTEMPT_COUNT = 5;
 
 static std::string read_file(const std::string &src_filename) {
 	try {

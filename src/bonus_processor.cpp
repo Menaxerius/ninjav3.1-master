@@ -40,13 +40,35 @@ void bonus_processor() {
 		if ( time(nullptr) < bonus_pay_cooloff_timeout )
 			continue;
 
-		// we need DB connection from here on
-		try {
-			DORM::DB::check_connection();
-		} catch (const DORM::DB::connection_issue &e) {
-			// DB being hammered by miners - try again in a moment
-			continue;
-		}
+        // we need DB connection from here on
+        // Check db connection
+        short i = 0;
+        bool is_connected = false;
+        bool is_continue = false;
+        while (!is_connected){
+            try{
+                DORM::DB::check_connection();
+                break;
+            } catch (const DORM::DB::connection_issue &e) {
+                // DB being hammered by miners - try again in a moment
+                std::cerr  << ftime() << "[bonus_processor::bonus_processor] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
+                is_continue = true;
+                break;
+            } catch(const sql::SQLException &e) {
+                // Could not connect to db.
+                std::cerr  << ftime() << "[bonus_processor::bonus_processor] " << e.what() << std::endl;
+                std::cerr << ftime() << "[bonus_processor::bonus_processor] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+                sleep(1);
+            }
+            ++i;
+            if(i + 1 == DB_CONNECTION_ATTEMPT_COUNT){
+                std::cerr << ftime() << "[bonus_processor::bonus_processor] DB connect failed..." << std::endl;
+                throw;
+            }
+        }
+        if(is_continue){
+            continue;
+        }
 
 		// if we have just started up, try to carry on from last known bonus
 		if (transactions_since_when == 0) {

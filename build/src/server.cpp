@@ -78,13 +78,18 @@ static int access_handler_initial( void *cls, struct MHD_Connection *connection,
 		DORM::DB::check_connection();
 	} catch (const DORM::DB::connection_issue &e) {
 		// Sorry, too busy!
+        std::cerr  << ftime() << "[server::access_handler_initial] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
 		char error[] = "Sorry, too busy - try again in a moment";
 
 		struct MHD_Response *response = MHD_create_response_from_buffer( strlen(error), (void*) error, MHD_RESPMEM_MUST_COPY );
 		MHD_queue_response( connection, 503, response );
 	 	MHD_destroy_response( response );
 	 	return MHD_YES;
-	}
+	} catch(const sql::SQLException &e) {
+        // Could not connect to db.
+        std::cerr << ftime() << "[server::access_handler_initial] " << e.what() << std::endl;
+        throw e;
+    }
 
 	// parse cookies
 	req->parse_cookies( connection );
@@ -473,7 +478,29 @@ int main(int argc, char **argv, char **envp) {
 	pthread_sigmask( SIG_BLOCK, &sigs, nullptr );
 
 	// uses config
-	DORM::DB::connect( DB_URI, DB_USER, DB_PASSWORD, DB_SCHEMA );
+    // Check db connection
+    short i = 0;
+    bool is_connected = false;
+    while (!is_connected){
+        try{
+            DORM::DB::connect( DB_URI, DB_USER, DB_PASSWORD, DB_SCHEMA );
+            break;
+        } catch (const DORM::DB::connection_issue &e) {
+            // DB being hammered by miners - try again in a moment
+            std::cerr  << ftime() << "[server::server] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
+            sleep(1);
+        } catch(const sql::SQLException &e) {
+            // Could not connect to db.
+            std::cerr << ftime() << "[server::server] " << e.what() << std::endl;
+            sleep(1);
+        }
+        std::cerr << ftime() << "[server::server] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+        ++i;
+        if(i + 1 == DB_CONNECTION_ATTEMPT_COUNT){
+            std::cerr << ftime() << "[server::server] DB connect failed..." << std::endl;
+            throw;
+        }
+    }
 
 	Handler *base_handler = handler_factory();
 	base_handler->global_init();

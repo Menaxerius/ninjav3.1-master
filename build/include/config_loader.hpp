@@ -25,6 +25,8 @@ extern bool HTTP_LOGGING;
 extern uid_t RUN_AS_UID;
 extern gid_t RUN_AS_GID;
 
+// Connection attempt count if DB connection failed.
+extern short DB_CONNECTION_ATTEMPT_COUNT;
 
 void config_init();
 

@@ -19,11 +19,35 @@ void blockchain_monitor() {
     BurstCoin burst(BURST_SERVERS, BURST_SERVER_TIMEOUT);
 
 	while(!BaseHandler::time_to_die) {
-		try {
-			DORM::DB::check_connection();
-		} catch (const DORM::DB::connection_issue &e) {
-			// DB being hammered by miners - try again in a moment
-			sleep(1);
+
+		// we need DB connection from here on
+		// Check db connection
+		short i = 0;
+		bool is_connected = false;
+		bool is_continue = false;
+		while (!is_connected){
+			try{
+				DORM::DB::check_connection();
+				break;
+			} catch (const DORM::DB::connection_issue &e) {
+				// DB being hammered by miners - try again in a moment
+				std::cerr  << ftime() << "[blockchain_monitor::blockchain_monitor] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
+				is_continue = true;
+				sleep(1);
+                break;
+			} catch(const sql::SQLException &e) {
+				// Could not connect to db.
+				std::cerr  << ftime() << "[blockchain_monitor::blockchain_monitor] " << e.what() << std::endl;
+				std::cerr << ftime() << "[blockchain_monitor::blockchain_monitor] Trying to connect in a moment. Attempt: " << i+1 <<  std::endl;
+				sleep(1);
+			}
+			++i;
+			if(i + 1 == DB_CONNECTION_ATTEMPT_COUNT){
+				std::cerr << ftime() << "[blockchain_monitor::blockchain_monitor] DB connect failed..." << std::endl;
+				throw;
+			}
+		}
+		if(is_continue){
 			continue;
 		}
 

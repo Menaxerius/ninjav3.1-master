@@ -225,8 +225,10 @@ void WebSocketHandler<SUBCLASS>::async_wake_up() {
 		connections_mutex.unlock();
 	} catch(const DORM::DB::connection_issue &e) {
 		// non-fatal
+		std::cerr  << ftime() << "[WebSocketHandler::async_wake_up] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
 	} catch(const std::exception &e) {
 		// we still need to release mutex
+		std::cerr  << ftime() << "[WebSocketHandler::async_wake_up] " << e.what() << std::endl;
 		throw(e);
 	}
 }
