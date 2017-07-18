@@ -99,14 +99,16 @@ void Handlers::WS::updates::update_historic_shares() {
 
 		while( auto reward = unpaid_rewards.result() ) {
 			// check whether miner has been waiting for ages
-			if ( reward->defined_blockID() && reward->blockID() < latest_blockID - MAX_PAYOUT_BLOCK_DELAY )
+            // Don't sum if not reah max delay
+			if ( reward->defined_blockID() && reward->blockID() < latest_blockID - MAX_PAYOUT_BLOCK_DELAY ){
 				ok_to_pay = true;
-
-			sum_amount += reward->amount();
+				sum_amount += reward->amount();
+			}
 		}
 
-		if ( sum_amount >= MINIMUM_PAYOUT )
-			ok_to_pay = true;
+		if ( sum_amount >= MINIMUM_PAYOUT ){
+            ok_to_pay = true;
+        }
 
 		if (ok_to_pay)
 			share_json.add_uint64( "queuedPayouts", sum_amount );

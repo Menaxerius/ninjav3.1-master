@@ -78,6 +78,8 @@ void BaseHandler::global_init() {
 	curl_global_init(CURL_GLOBAL_ALL);
 
 	std::thread(blockchain_monitor).detach();
+    // Wait for first "BlockCache::latest_blockID" initialization!
+    sleep(1);
 	std::thread(blockchain_refresh).detach();
 	std::thread(block_forger).detach();
 	std::thread(account_updater).detach();

@@ -179,14 +179,16 @@ void reward_payer() {
 
 			for( auto &reward : rewards ) {
 				// check whether miner has been waiting for ages
-				if ( reward->defined_blockID() && reward->blockID() < latest_blockID - MAX_PAYOUT_BLOCK_DELAY )
-					ok_to_pay = true;
-
-				sum_amount += reward->amount();
+                // Don't sum if not reah max delay
+				if ( reward->defined_blockID() && reward->blockID() < latest_blockID - MAX_PAYOUT_BLOCK_DELAY ){
+                    ok_to_pay = true;
+                    sum_amount += reward->amount();
+                }
 			}
 
-			if ( sum_amount >= MINIMUM_PAYOUT )
-				ok_to_pay = true;
+			if ( sum_amount >= MINIMUM_PAYOUT ){
+                ok_to_pay = true;
+            }
 
 			if ( !ok_to_pay ) {
 				deferred_amount += sum_amount + PAYMENT_SEND_FEE;
