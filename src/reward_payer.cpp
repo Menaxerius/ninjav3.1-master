@@ -233,7 +233,7 @@ void reward_payer() {
 			CryptoCoinTx tx;
 			tx.sender = OUR_ACCOUNT_RS;
 			tx.encoded_passphrase = OUR_ACCOUNT_PASSPHRASE;
-			tx.fee_inclusive = false;
+			tx.fee_inclusive = true;
 			tx.fee = PAYMENT_SEND_FEE;
 
 			std::string recipientRS = BurstCoin::accountID_to_RS_string( accountID );
