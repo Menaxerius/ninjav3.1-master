@@ -34,6 +34,7 @@
 	"poolFeeNumericAccountId": "8914871999082705304",
 
 	"minimumPayout": 300,
+    "minimumDeferredPayout":10,
 	
 	"sharePowerFactor": 1.2,
 	"currentBlockRewardPercent": 60,

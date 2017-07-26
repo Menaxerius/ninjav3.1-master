@@ -113,17 +113,16 @@ void Handlers::WS::updates::update_historic_shares() {
         if ( sum_amount + late_sum_amount >= MINIMUM_PAYOUT ){
             ok_to_pay = true;
             sum_amount += late_sum_amount;
-        } else if(late_sum_amount > 0) {
-            // If there is delayed payouts pay just those
+			share_json.add_uint64( "queuedPayouts", sum_amount );
+        } else if(late_sum_amount > 0 && late_sum_amount >= MINIMUM_DEFERRED_PAYOUT) {
+            // If there is delayed payouts passing the minimum deferred pay out limit pay just those
             ok_to_pay = true;
             deferred_amount = sum_amount;
-            sum_amount = late_sum_amount;
+			share_json.add_uint64( "queuedPayouts", late_sum_amount );
         } else {
-            deferred_amount = sum_amount;
+            deferred_amount = sum_amount + late_sum_amount;
         }
 
-        if (ok_to_pay)
-            share_json.add_uint64( "queuedPayouts", sum_amount );
         if (deferred_amount > 0)
             share_json.add_uint64( "deferredPayouts", deferred_amount );
 

@@ -50,6 +50,7 @@ extern std::string POOL_FEE_ACCOUNT_RS;
 
 // minimum amount before a payout is made to a miner
 extern uint64_t MINIMUM_PAYOUT;
+extern uint64_t MINIMUM_DEFERRED_PAYOUT;
 
 extern double SHARE_POWER_FACTOR;
 

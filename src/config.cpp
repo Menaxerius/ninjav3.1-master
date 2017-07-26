@@ -31,6 +31,7 @@ uint64_t POOL_FEE_ACCOUNT_ID;
 std::string POOL_FEE_ACCOUNT_RS;
 
 uint64_t MINIMUM_PAYOUT;
+uint64_t MINIMUM_DEFERRED_PAYOUT;
 
 double SHARE_POWER_FACTOR;
 unsigned int CURRENT_BLOCK_REWARD_PERCENT;
@@ -79,6 +80,7 @@ void more_config( const JSON &json ) {
 	POOL_FEE_ACCOUNT_RS = BurstCoin::accountID_to_RS_string( POOL_FEE_ACCOUNT_ID );
 
 	MINIMUM_PAYOUT = json.get_uint64("minimumPayout") * 100000000; // config file value is in BURST, not NQT
+	MINIMUM_DEFERRED_PAYOUT = json.get_uint64("minimumDeferredPayout") * 100000000; // config file value is in BURST, not NQT
 
 	SHARE_POWER_FACTOR = json.get_double("sharePowerFactor");
 	CURRENT_BLOCK_REWARD_PERCENT = json.get_number("currentBlockRewardPercent");
