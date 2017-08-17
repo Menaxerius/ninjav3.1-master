@@ -47,7 +47,7 @@ int mkpath(const char *path, mode_t mode) {
 
 	// add "/." on the end to get _mkpath to create last node
 	copy[sizeof(copy) - 3] = '/';
-	copy[sizeof(copy) - 3] = '.';
+	copy[sizeof(copy) - 2] = '.';
 
 	// don't forget NUL C-string terminator
 	copy[sizeof(copy) - 1] = '\0';
