@@ -22,7 +22,7 @@ void database_trimmer() {
     uint64_t current_blockID = 0;
 
 	while(!BaseHandler::time_to_die) {
-		sleep(4);
+		sleep(2);
 
 		uint64_t latest_blockID = BlockCache::latest_blockID;
 

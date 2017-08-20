@@ -34,7 +34,7 @@ void bonus_processor() {
 	BurstCoin burst(BURST_SERVERS);
 
 	while(!BaseHandler::time_to_die) {
-		sleep(4);
+		sleep(2);
 
 		// did we have a payment failure recently?
 		if ( time(nullptr) < bonus_pay_cooloff_timeout )

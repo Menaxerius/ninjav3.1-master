@@ -74,6 +74,6 @@ void blockchain_monitor() {
 		if (is_new_latest_block)
 			Handlers::WS::updates::wake_up();
 
-		sleep(2);
+		sleep(1);
 	}
 }
