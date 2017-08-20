@@ -18,7 +18,7 @@ void account_updater() {
     BurstCoin burst(BURST_SERVERS);
 
 	while(!BaseHandler::time_to_die) {
-		sleep(2);
+		sleep(0.2);
 
 		const uint64_t latest_blockID = BlockCache::latest_blockID;
 
@@ -61,7 +61,7 @@ void account_updater() {
 
 			account->update_check(burst, latest_blockID);
 			account->save();
-			sleep(1);
+			sleep(0.1);
 		}
 	}
 }
