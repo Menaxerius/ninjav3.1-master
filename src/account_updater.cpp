@@ -25,7 +25,7 @@ void account_updater() {
 		// we need DB connection from here on
         // Check db connection
         short counter = 0;
-        bool is_continue = false;account
+        bool is_continue = false;
         while (true){
             try{
                 DORM::DB::check_connection();
