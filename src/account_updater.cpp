@@ -18,14 +18,14 @@ void account_updater() {
     BurstCoin burst(BURST_SERVERS);
 
 	while(!BaseHandler::time_to_die) {
-		sleep(0.2);
+		sleep(2);
 
 		const uint64_t latest_blockID = BlockCache::latest_blockID;
 
 		// we need DB connection from here on
         // Check db connection
         short counter = 0;
-        bool is_continue = false;account
+        bool is_continue = false;
         while (true){
             try{
                 DORM::DB::check_connection();
@@ -61,7 +61,7 @@ void account_updater() {
 
 			account->update_check(burst, latest_blockID);
 			account->save();
-			sleep(0.1);
+			sleep(1);
 		}
 	}
 }
