@@ -26,7 +26,7 @@ void block_forger() {
     BurstCoin burst(BURST_SERVERS, BURST_SERVER_TIMEOUT);
 
 	while(!BaseHandler::time_to_die) {
-		sleep(0.1);
+		sleep(2);
 
 		auto nonce = SubmissionCache::clone_best_nonce();
 		if (!nonce)

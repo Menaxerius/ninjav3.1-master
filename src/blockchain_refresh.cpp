@@ -90,7 +90,7 @@ void blockchain_refresh() {
     BurstCoin burst(BURST_SERVERS);
 
 	while(!BaseHandler::time_to_die) {
-		sleep(0.1);
+		sleep(2);
 
         // we need DB connection from here on
         // Check db connection
