@@ -37,7 +37,7 @@ void reward_payer() {
 	BurstCoin burst(BURST_SERVERS);
 
 	while( !BaseHandler::time_to_die ) {
-		sleep(1);
+		sleep(0.1);
 
 		uint64_t latest_blockID = BlockCache::latest_blockID;
 
@@ -272,7 +272,7 @@ void reward_payer() {
 
 			std::cout << ftime() << "Sent reward of " << burst.pretty_amount(sum_amount) << " to account " << recipientRS << ", tx " << tx.tx_id << std::endl;
 
-			sleep(1);
+			sleep(0.1);
 		}
 
 
