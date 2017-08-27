@@ -334,8 +334,7 @@ void Handlers::WS::updates::websocket_alert() {
 
 	send_new_accounts();
 
-	//if (latest_blockID > our_blockID)
-	{
+	if (latest_blockID > our_blockID) {
 		WebSocketFrame wsf;
 		wsf.pack(block_msg);
 		send_websocket_frame(wsf);
@@ -344,8 +343,7 @@ void Handlers::WS::updates::websocket_alert() {
 		send_websocket_frame(wsf);
 	}
 
-	//if (shares_msg_changed || our_blockID == 0)
-	{
+	if (shares_msg_changed || our_blockID == 0) {
 		WebSocketFrame wsf;
 		wsf.pack(shares_msg);
 		send_websocket_frame(wsf);

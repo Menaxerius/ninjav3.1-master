@@ -48,53 +48,49 @@ const std::unique_ptr<Nonce> SubmissionCache::save_nonce(Nonce &new_nonce) {
 
 
 void SubmissionCache::recalculate_shares() {
+	std::lock_guard<std::mutex>	nonces_guard(nonces_mutex);
+	std::lock_guard<std::mutex> shares_guard(shares_mutex);
 
 	// We process each account's best nonce ignoring other nonces from the same account.
 	// As nonces are sorted, we can simply keep a record of which accounts we've come across.
 	std::map<uint64_t, const Nonce *> nonces_by_accountID;
-	std::list< std::pair<uint64_t,double> > shares_by_accountID;
+
 	double total_shares = 0.0;
+	std::list< std::pair<uint64_t,double> > shares_by_accountID;
 
-	{
-		std::lock_guard<std::mutex>	nonces_guard(nonces_mutex);
+	for( const auto &nonce : nonces ) {
+		auto insert_result = nonces_by_accountID.insert( std::make_pair( nonce->accountID(), nonce.get() ) );
+		if (insert_result.second == false)
+			continue;	// key (accountID) already existed
 
-		for( const auto &nonce : nonces ) {
-			auto insert_result = nonces_by_accountID.insert( std::make_pair( nonce->accountID(), nonce.get() ) );
-			if (insert_result.second == false)
-				continue;	// key (accountID) already existed
+		// it's actually possible (although rare) for deadline to be zero!
+		const uint64_t deadline = nonce->deadline() + 1;
 
-			// it's actually possible (although rare) for deadline to be zero!
-			const uint64_t deadline = nonce->deadline() + 1;
+		const double share = 1.0 / pow( static_cast<double>(deadline), SHARE_POWER_FACTOR );
+		shares_by_accountID.push_back( std::make_pair( nonce->accountID(), share ) );
 
-			const double share = 1.0 / pow( static_cast<double>(deadline), SHARE_POWER_FACTOR );
-			shares_by_accountID.push_back( std::make_pair( nonce->accountID(), share ) );
-
-			total_shares += share;
-		}
-	}
-	{
-		std::lock_guard<std::mutex> shares_guard(shares_mutex);
-		shares.clear();
-		// no need to wipe old shares in database
-		// as existing shares only get insert/updated, never deleted
-
-		for( const auto &share_pair : shares_by_accountID ) {
-			const Nonce *nonce = nonces_by_accountID[share_pair.first];
-			const double share_fraction = share_pair.second / total_shares;
-
-			auto share = std::make_unique<Share>();
-			share->blockID( nonce->blockID() );
-			share->accountID( nonce->accountID() );
-			share->share_fraction( share_fraction );
-			share->deadline( nonce->deadline() );
-			share->deadline_string( nonce->deadline_string() );
-			share->miner( nonce->miner() );
-			share->save();
-
-			shares.push_back( std::move(share) );
-		}
+		total_shares += share;
 	}
 
+	shares.clear();
+	// no need to wipe old shares in database
+	// as existing shares only get insert/updated, never deleted
+
+	for( const auto &share_pair : shares_by_accountID ) {
+		const Nonce *nonce = nonces_by_accountID[share_pair.first];
+		const double share_fraction = share_pair.second / total_shares;
+
+		auto share = std::make_unique<Share>();
+		share->blockID( nonce->blockID() );
+		share->accountID( nonce->accountID() );
+		share->share_fraction( share_fraction );
+		share->deadline( nonce->deadline() );
+		share->deadline_string( nonce->deadline_string() );
+		share->miner( nonce->miner() );
+		share->save();
+
+		shares.push_back( std::move(share) );
+	}
 }
 
 
@@ -179,36 +175,31 @@ uint64_t SubmissionCache::share_count() {
 
 
 void SubmissionCache::new_block_reset(const bool try_loading_from_DB) {
-	{
-		std::lock_guard<std::mutex>	nonces_guard(nonces_mutex);
-		nonces.clear();
-		first_submitted_nonce.reset();
-		last_submitted_nonce.reset();
+	std::lock_guard<std::mutex>	nonces_guard(nonces_mutex);
+	nonces.clear();
+	first_submitted_nonce.reset();
+	last_submitted_nonce.reset();
 
-		if (try_loading_from_DB) {
-			Nonce DB_nonces;
-			DB_nonces.blockID(BlockCache::latest_blockID);
-			DB_nonces.best_first(true);
-			DB_nonces.search();
-            
-			while( auto DB_nonce = DB_nonces.result() )
-				nonces.push_back( std::move(DB_nonce) );
-		}
+	if (try_loading_from_DB) {
+		Nonce DB_nonces;
+		DB_nonces.blockID(BlockCache::latest_blockID);
+		DB_nonces.best_first(true);
+		DB_nonces.search();
+
+		while( auto DB_nonce = DB_nonces.result() )
+			nonces.push_back( std::move(DB_nonce) );
 	}
 
-	{
-		std::lock_guard<std::mutex> shares_guard(shares_mutex);
-		shares.clear();
+	std::lock_guard<std::mutex> shares_guard(shares_mutex);
+	shares.clear();
 
-		if (try_loading_from_DB) {
-			Share DB_shares;
-			DB_shares.blockID(BlockCache::latest_blockID);
-			DB_shares.biggest_first(true);
-			DB_shares.search();
+	if (try_loading_from_DB) {
+		Share DB_shares;
+		DB_shares.blockID(BlockCache::latest_blockID);
+		DB_shares.biggest_first(true);
+		DB_shares.search();
 
-			while( auto DB_share = DB_shares.result() )
-				shares.push_back( std::move(DB_share) );
-		}
+		while( auto DB_share = DB_shares.result() )
+			shares.push_back( std::move(DB_share) );
 	}
-
 }
