@@ -101,7 +101,7 @@ void SubmissionCache::save_and_rank(Nonce &new_nonce) {
 	BlockCache::update_best_nonce( best_nonce );
 
 	// recalculate shares!
-	recalculate_shares();
+	// recalculate_shares();
 }
 
 

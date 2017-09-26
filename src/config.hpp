@@ -80,4 +80,6 @@ extern std::string PUSH_RECIPIENT;
 // Numeric accountIDs of banned miners
 extern std::vector<uint64_t> BANNED_ACCOUNT_IDS;
 
+extern bool NEW_NONCE;
+
 #endif

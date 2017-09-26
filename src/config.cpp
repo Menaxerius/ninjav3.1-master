@@ -51,8 +51,11 @@ std::string PUSH_RECIPIENT;
 
 std::vector<uint64_t> BANNED_ACCOUNT_IDS;
 
+bool NEW_NONCE;
 
 void more_config( const JSON &json ) {
+	bool NEW_NONCE = false;
+
 	JSON_Array servers_json = json.get_array("burstServers");
 	for( int i=0; i<servers_json.size(); ++i )
 		BURST_SERVERS.push_back( servers_json.get_string(i) );

@@ -22,7 +22,6 @@ class SubmissionCache {
 		static std::mutex				shares_mutex;
 
 		static const std::unique_ptr<Nonce> save_nonce(Nonce &new_nonce);
-		static void recalculate_shares();
 
 	public:
 		static void save_and_rank(Nonce &new_nonce);
@@ -37,6 +36,7 @@ class SubmissionCache {
 		static uint64_t share_count();
 
 		static void new_block_reset(const bool try_loading_from_DB);
+		static void recalculate_shares();
 };
 
 #endif

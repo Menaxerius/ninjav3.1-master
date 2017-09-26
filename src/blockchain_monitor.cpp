@@ -9,6 +9,7 @@
 #include "JSON.hpp"
 
 #include "pthread_np_shim.hpp"
+#include "SubmissionCache.hpp"
 
 
 void blockchain_monitor() {
@@ -17,6 +18,7 @@ void blockchain_monitor() {
     std::cout << ftime() << "Blockchain monitoring started" << std::endl;
 
     BurstCoin burst(BURST_SERVERS, BURST_SERVER_TIMEOUT);
+	unsigned int counter = 0;
 
 	while(!BaseHandler::time_to_die) {
 
@@ -74,6 +76,12 @@ void blockchain_monitor() {
 		if (is_new_latest_block)
 			Handlers::WS::updates::wake_up();
 
+		if(NEW_NONCE && counter % 5 == 0){
+			NEW_NONCE = false;
+			SubmissionCache::recalculate_shares();
+		}
+
 		sleep(1);
+		++counter;
 	}
 }

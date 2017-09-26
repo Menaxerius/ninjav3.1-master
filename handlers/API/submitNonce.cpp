@@ -220,6 +220,7 @@ int Handlers::API::submitNonce::inner( struct MHD_Connection *connection, Reques
 		new_nonce.miner( "Blago" );
 
 	SubmissionCache::save_and_rank( new_nonce );
+	NEW_NONCE = true;
 
 	// wake up update websockets! (async)
 	Handlers::WS::updates::wake_up();
