@@ -39,3 +39,15 @@ startup:
 		echo $$! > $${BINARY}.pid; \
 		echo $${BINARY} running with PID `cat $${BINARY}.pid`; \
 	done
+
+	
+package:
+	@rm -fr staging
+	@rm -f pool-binaries.tar.xz
+	mkdir -p staging/output
+	cp -a Makefile extra staging/
+	build/contrib/DORM/bin/emit_object_SQL objects/*.hpp > staging/burstpool.sql
+	cp -a static staging/
+	cp output/lib* output/server build/lib/lib* build/contrib/DORM/lib/lib* staging/output/
+	(cd staging; tar -cvJf ../pool-binaries.tar.xz *)
+	@rm -fr staging	

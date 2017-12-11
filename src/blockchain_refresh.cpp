@@ -1,3 +1,4 @@
+#include "Account.hpp"
 #include "Block.hpp"
 #include "Nonce.hpp"
 
@@ -29,54 +30,61 @@ bool refresh_previous_block( const uint64_t blockID ) {
 
 	BurstCoin burst(BURST_SERVERS);
 
+	JSON block_json;
+
 	try {
-		std::string block_info = burst.get_block(blockID);
-
-		JSON block_json(block_info);
-
-		if ( !block_json.null("generator") ) {
-			// update info about who forged the block
-			const uint64_t generator = block_json.get_uint64("generator");
-			const uint64_t nonce = block_json.get_uint64("nonce");
-			const unsigned int scoop = block_json.get_number("scoopNum");
-			const uint64_t base_target = block_json.get_uint64("baseTarget");
-			const std::string generation_signature = block_json.get_string("generationSignature");
-
-
-			block->generator_account_id( generator );
-			block->nonce( nonce );
-			block->base_target( base_target );
-			block->generation_signature( generation_signature );
-			block->scoop( scoop );
-			block->block_reward( block_json.get_uint64("blockReward") );
-
-			uint64_t timestamp = block_json.get_uint64("timestamp");
-			block->forged_when( burst.crypto_to_unix_time(timestamp) );
-
-			uint64_t deadline = Nonce::calculate_deadline( generator, nonce, blockID, scoop, base_target, generation_signature );
-			block->deadline( deadline );
-
-			// update check with our best nonce to see if we won block
-			Nonce nonces;
-			nonces.blockID( blockID );
-			nonces.best_first(true);
-			auto best_nonce = nonces.load();
-			if (best_nonce) {
-				block->best_nonce_account_id( best_nonce->accountID() );
-				block->our_best_deadline( best_nonce->deadline() );
-
-				block->is_our_block( best_nonce->accountID() == generator );
-			}
-
-			block->save();
-		}
+		block_json = burst.get_block(blockID);
 	} catch (const CryptoCoins::server_issue &e) {
 		// failed - try again soon?
 		return false;
-	} catch (const JSON::parse_error &e) {
-		// failed - try again soon?
-		return false;
 	}
+
+	// blocks really should have a generator!
+	if ( block_json.null("generator") )
+		return false;
+
+	// update info about who forged the block
+	const uint64_t generator = block_json.get_uint64("generator");
+	const uint64_t nonce = block_json.get_uint64("nonce");
+	const unsigned int scoop = block_json.get_number("scoopNum");
+	const uint64_t base_target = block_json.get_uint64("baseTarget");
+	const std::string generation_signature = block_json.get_string("generationSignature");
+
+
+	block->generator_account_id( generator );
+	block->nonce( nonce );
+	block->base_target( base_target );
+	block->generation_signature( generation_signature );
+	block->scoop( scoop );
+	block->block_reward( block_json.get_uint64("blockReward") );
+	block->block_id( block_json.get_uint64("block") );
+	block->tx_fees( block_json.get_uint64("totalFeeNQT") );
+
+	uint64_t timestamp = block_json.get_uint64("timestamp");
+	block->forged_when( burst.crypto_to_unix_time(timestamp) );
+
+	uint64_t deadline = Nonce::calculate_deadline( generator, nonce, blockID, scoop, base_target, generation_signature );
+	block->deadline( deadline );
+
+	// update check with our best nonce to see if we won block
+	Nonce nonces;
+	nonces.blockID( blockID );
+	nonces.best_first(true);
+	auto best_nonce = nonces.load();
+	if (best_nonce) {
+		block->best_nonce_account_id( best_nonce->accountID() );
+		block->our_best_deadline( best_nonce->deadline() );
+
+		block->is_our_block( best_nonce->accountID() == generator );
+	}
+
+	block->save();
+
+	// also ensure there's at least a skeleton Account record
+	// so that the account_updater thread can check for account name for prettiness
+	Account account;
+	account.accountID( generator );
+	account.save();
 
 	return true;
 }
@@ -90,37 +98,14 @@ void blockchain_refresh() {
     BurstCoin burst(BURST_SERVERS);
 
 	while(!BaseHandler::time_to_die) {
-		sleep(1);
+		sleep(3);
 
-        // we need DB connection from here on
-        // Check db connection
-        short counter = 0;
-        bool is_continue = false;
-        while (true){
-            try{
-                DORM::DB::check_connection();
-                break;
-            } catch (const DORM::DB::connection_issue &e) {
-                // DB being hammered by miners - try again in a moment
-                std::cerr  << ftime() << "[blockchain_refresh::blockchain_refresh] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
-                is_continue = true;
-                break;
-            } catch(const sql::SQLException &e) {
-                // Could not connect to db.
-                std::cerr  << ftime() << "[blockchain_refresh::blockchain_refresh] " << e.what() << std::endl;
-                std::cerr << ftime() << "[blockchain_refresh::blockchain_refresh] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
-                sleep(1);
-            }
-            ++counter;
-            if(counter + 1 == DB_CONNECTION_ATTEMPT_COUNT){
-                std::cerr << ftime() << "[blockchain_refresh::blockchain_refresh] DB connect failed..." << std::endl;
-                throw;
-            }
-        }
-        if(is_continue){
-            continue;
-        }
-
+		try {
+			DORM::DB::check_connection();
+		} catch (const DORM::DB::connection_issue &e) {
+			// DB being hammered by miners - try again in a moment
+			continue;
+		}
 
 		// when a new block happens, refresh some recent blocks
 		// so we can find out if the network agrees about which blocks we won

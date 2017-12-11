@@ -33,7 +33,6 @@ bool HTTP_LOGGING = false;
 uid_t RUN_AS_UID = -1;
 gid_t RUN_AS_GID = -1;
 
-short DB_CONNECTION_ATTEMPT_COUNT = 5;
 
 static std::string read_file(const std::string &src_filename) {
 	try {
@@ -50,7 +49,7 @@ static std::string read_file(const std::string &src_filename) {
 		fs.close();
 
 		return std::string( buffer.get(), size );
-	} catch(const std::ifstream::failure& e) {
+	} catch (const std::ifstream::failure& e) {
 		std::cerr << "Can't open " << src_filename << ": " << std::strerror(errno) << std::endl;
 		exit(2);
 	}
@@ -126,7 +125,7 @@ void config_init() {
 
 		// pass on to application-specific config handler
 		more_config(json);
-	} catch(const std::exception &e) {
+	} catch (const std::exception &e) {
 		std::cerr << e.what() << std::endl;
 		exit(2);
 	}

@@ -4,6 +4,7 @@
 #include "Block.hpp"
 
 #include <mutex>
+#include <atomic>
 #include <unistd.h>
 
 
@@ -16,7 +17,9 @@ class BlockCache {
 		static std::string				latest_generation_signature;
 
 	public:
-		static uint64_t					latest_blockID;
+		static std::atomic<uint64_t>	latest_blockID;
+		static std::atomic<uint64_t>	pool_balance;
+		static std::atomic<uint64_t>	deferred_total;
 
 		static std::string get_mining_info();
 		static bool update_latest_block(const uint64_t blockID, const uint64_t base_target, const std::string &generation_signature);

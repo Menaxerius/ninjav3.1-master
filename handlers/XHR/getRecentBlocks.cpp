@@ -34,7 +34,7 @@ int Handlers::XHR::getRecentBlocks::process( struct MHD_Connection *connection, 
 			entry.add_uint( "ourBestDeadline", block->our_best_deadline() );
 		}
 
-		entry.add_uint( "blockReward", block->block_reward() );
+		entry.add_uint64( "block_id", block->block_id() );
 		entry.add_uint( "isOurBlock", block->is_our_block() );
 		entry.add_uint( "deadline", block->deadline() );
 

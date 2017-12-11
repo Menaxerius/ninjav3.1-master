@@ -50,5 +50,11 @@ Handler *RegistryHandler::route( struct MHD_Connection *connection, Request *req
 
 
 int RegistryHandler::process( struct MHD_Connection *connection, Request *req, Response *resp ) {
-	return MHD_NO;
+	if (MHD_VERSION < 0x00095401)
+		return MHD_NO;	// we can't queue a 404 response as it crashes libmicrohttpd
+
+	resp->content = "Not Found";
+	resp->status_code = 404;
+
+	return MHD_YES;
 };

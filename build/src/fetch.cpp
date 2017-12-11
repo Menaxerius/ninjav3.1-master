@@ -54,9 +54,9 @@ std::string fetch( const std::string &url, const std::string &post_data, const s
 		#else
 			curl_easy_perform( curl_handle );
 		#endif
-	} catch(const std::exception &e) {
+	} catch (const std::exception &e) {
 		std::cerr << "CURL threw: " << e.what() << std::endl;
-		throw(e);
+		throw;
 	}
 
 	curl_slist_free_all( headers );

@@ -90,6 +90,10 @@ class CryptoCoins {
 			public: unknown_transaction() : std::runtime_error("unknown cryptocoin transaction") {};
 		};
 
+		class not_enough_funds : public std::runtime_error {
+			public: not_enough_funds() : std::runtime_error("not enough funds") {};
+		};
+
 		class server_issue : public std::runtime_error {
 			public: server_issue() : std::runtime_error("cryptocoin server issue") {};
 		};

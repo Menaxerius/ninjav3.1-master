@@ -216,6 +216,13 @@ UL.tabs LI[tab=active] {
 }
 
 
+#recent-blocks-info {
+	flex:					1;
+	overflow-y:				auto;
+	overflow-x:				hidden;
+}
+
+
 #historic-shares-graph {
 	flex:					1;
 }
@@ -223,7 +230,7 @@ UL.tabs LI[tab=active] {
 
 #historic-shares-info {
 	flex:					2;
-	overflow-y:				scroll;
+	overflow-y:				auto;
 	overflow-x:				hidden;
 }
 
@@ -245,7 +252,7 @@ UL.tabs LI[tab=active] {
 
 
 #pool-help UL {
-	overflow-y:				scroll;
+	overflow-y:				auto;
 	overflow-x:				hidden;
 }
 

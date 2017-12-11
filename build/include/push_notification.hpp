@@ -3,6 +3,6 @@
 
 #include <string>
 
-void push_notification( std::string url, std::string key, std::string user, std::string message, std::string sound = "" );
+void push_notification( const std::string &url, const std::string &key, const std::string &user, const std::string &message, const std::string &sound = "" );
 
 #endif

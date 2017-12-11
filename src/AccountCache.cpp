@@ -134,3 +134,19 @@ void AccountCache::update_account_capacity(const uint64_t accountID, const uint6
 	account->mining_capacity(capacity);
 	account->save();
 }
+
+
+void AccountCache::update_reward_recipients(const uint64_t latest_blockID, const JSON_Array &accounts_json_array) {
+	const int n_accounts = accounts_json_array.size();
+	for (int i=0; i<n_accounts; ++i) {
+		const uint64_t accountID = accounts_json_array.get_uint64(i);
+
+		std::lock_guard<std::mutex>	accounts_guard(accounts_mutex);
+
+		// update account
+		auto &account = find_or_cache(accountID);
+		account->reward_recipient(OUR_ACCOUNT_ID);
+		account->last_checked_at_block(latest_blockID);
+		account->save();
+	}
+}

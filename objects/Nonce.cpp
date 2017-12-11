@@ -43,14 +43,14 @@ uint8_t *Nonce::plot_nonce( uint64_t account_id, uint64_t nonce ) {
 		// aligned to 256 to support future AVX shabal code
 		// right now alignment to 16 would probably be enough
 		uint8_t *gendata = (uint8_t *)aligned_alloc(256, 16 + PLOT_SIZE);
-		if (gendata == NULL) {
+		if (gendata == nullptr) {
 			perror("aligned_alloc");
 			exit(2);
 		}
 	#else
 		// for leak checking we have to use malloc()
 		uint8_t *gendata = (uint8_t *)malloc(16 + PLOT_SIZE);
-		if (gendata == NULL) {
+		if (gendata == nullptr) {
 			perror("malloc");
 			exit(2);
 		}

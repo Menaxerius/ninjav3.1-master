@@ -34,40 +34,19 @@ void bonus_processor() {
 	BurstCoin burst(BURST_SERVERS);
 
 	while(!BaseHandler::time_to_die) {
-		sleep(2);
+		sleep(4);
 
 		// did we have a payment failure recently?
 		if ( time(nullptr) < bonus_pay_cooloff_timeout )
 			continue;
 
-        // we need DB connection from here on
-        // Check db connection
-        short counter = 0;
-        bool is_continue = false;
-        while (true){
-            try{
-                DORM::DB::check_connection();
-                break;
-            } catch (const DORM::DB::connection_issue &e) {
-                // DB being hammered by miners - try again in a moment
-                std::cerr  << ftime() << "[bonus_processor::bonus_processor] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
-                is_continue = true;
-                break;
-            } catch(const sql::SQLException &e) {
-                // Could not connect to db.
-                std::cerr  << ftime() << "[bonus_processor::bonus_processor] " << e.what() << std::endl;
-                std::cerr << ftime() << "[bonus_processor::bonus_processor] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
-                sleep(1);
-            }
-            ++counter;
-            if(counter + 1 == DB_CONNECTION_ATTEMPT_COUNT){
-                std::cerr << ftime() << "[bonus_processor::bonus_processor] DB connect failed..." << std::endl;
-                throw;
-            }
-        }
-        if(is_continue){
-            continue;
-        }
+		// we need DB connection from here on
+		try {
+			DORM::DB::check_connection();
+		} catch (const DORM::DB::connection_issue &e) {
+			// DB being hammered by miners - try again in a moment
+			continue;
+		}
 
 		// if we have just started up, try to carry on from last known bonus
 		if (transactions_since_when == 0) {
@@ -80,7 +59,7 @@ void bonus_processor() {
 				// -1 because there may be more transactions at the same timestamp
 				transactions_since_when = newest_bonus->seen_when() - 1;
 
-				std::cout << ftime() << "Bonus processor ignoring transactions before " << asctime(gmtime( &transactions_since_when)) << std::endl;
+				std::cout << ftime() << "Bonus processor ignoring transactions before " << asctime(gmtime( &transactions_since_when));	// no std::endl as asctime provides '\n'
 			}
 		}
 
@@ -140,9 +119,9 @@ void bonus_processor() {
 
 				// bonus is spread out using historic share fractions
 				auto shares = Share::historic_shares( latest_blockID - 1, HISTORIC_BLOCK_COUNT );
-				uint64_t num_shares = shares->search();
-				uint64_t feesNQT = num_shares * PAYMENT_SEND_FEE;
-				uint64_t feeless_balanceNQT = recipient_amount.amount - feesNQT;
+				shares->search();
+				// actual balance will be slightly lower after being sent to pool account
+				uint64_t feeless_balanceNQT = recipient_amount.amount - PAYMENT_SEND_FEE;
 
 				while( auto share = shares->result() ) {
 					uint64_t amount = feeless_balanceNQT * share->share_fraction();
@@ -159,10 +138,10 @@ void bonus_processor() {
 				CryptoCoinTx forward_tx;
 				forward_tx.sender = BONUS_ACCOUNT_RS;
 				forward_tx.encoded_passphrase = BONUS_ACCOUNT_PASSPHRASE;
-				forward_tx.fee_inclusive = false;
+				forward_tx.fee_inclusive = true;
 				forward_tx.fee = PAYMENT_SEND_FEE;
 
-				forward_tx.recipient_amounts.push_back( { OUR_ACCOUNT_RS, bonus.amount() - PAYMENT_SEND_FEE } );
+				forward_tx.recipient_amounts.push_back( { OUR_ACCOUNT_RS, bonus.amount() } );
 
 				try {
 					if ( !burst.send_transaction(forward_tx) ) {

@@ -16,12 +16,12 @@ GENOBJS:=${patsubst %.hpp, ${OUTPUT_DIR}/%_.o, ${INCS}}
 CXXFLAGS+=-std=c++14 -g -fPIC -pipe -Wall -pthread
 
 ifdef DEBUG
-CXXFLAGS+=-ferror-limit=2 -O0 -fno-omit-frame-pointer -fsanitize=address
+CXXFLAGS:=-O0 -ferror-limit=2 -fno-omit-frame-pointer -fsanitize=address ${CXXFLAGS}
 else
-CXXFLAGS+=-O3
+CXXFLAGS:=-O3 ${CXXFLAGS}
 endif
 
-INCDIRS=. ../output/objects ../build/contrib/DORM/include ../build/include
+INCDIRS=. ../output/objects ../build/contrib/DORM/include ../build/include ../src
 CXXFLAGS+=${addprefix -I,${INCDIRS}} -isystem /usr/local/include
 
 LDFLAGS=-shared -Wl,-soname,${SOLIB} -Wl,-rpath=output

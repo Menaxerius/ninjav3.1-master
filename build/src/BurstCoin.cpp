@@ -32,19 +32,21 @@ class ResponseCounts: public std::map<std::string,int> {
 };
 
 
-std::string BurstCoin::server_RPC( const std::string &request_type, param_map_t *params, bool first_server_only ) {
+JSON BurstCoin::server_RPC( const std::string &request_type, param_map_t *params, const bool first_server_only, const std::vector<int> &critical_error_codes ) {
+	// so far, the only users of critical_error_codes are get_transaction and send_transaction
+
 	std::string data = "requestType=" + request_type;
 
 	if (params)
-		for(const auto &map_it : *params)
+		for (const auto &map_it : *params)
 			data += "&" + map_it.first + "=" + map_it.second;
 
 	// in "first_server_only" mode we want to do this sequentially with standard CURL timeout
 	// otherwise do all requests in parallel
 
 	if (first_server_only) {
-		for(const auto &server_name : servers) {
-			std::string url = "http://" + server_name + "/burst";
+		for (const auto &server_name : servers) {
+			std::string url = server_name + "/burst";
 
 			#ifdef DEBUG_BURSTCOIN
 				std::cout << "TO " << url << ": " << data << std::endl;
@@ -59,7 +61,27 @@ std::string BurstCoin::server_RPC( const std::string &request_type, param_map_t 
 			if ( response.empty() )
 				continue;
 
-			return response;
+			JSON response_json;
+
+			try {
+				response_json = JSON(response);
+			} catch (const JSON::parse_error &e) {
+				continue;
+			}
+
+			// return response if error in critical list
+			if ( !response_json.null("errorCode") ) {
+				const int response_error_code = response_json.get_number("errorCode");
+
+				for (const int critical_error_code : critical_error_codes)
+					if (critical_error_code == response_error_code)
+						return response_json;
+
+				// bad response but caller doesn't want to know - try next server
+				continue;
+			}
+
+			return response_json;
 		}
 
 		// No response from any server?
@@ -70,18 +92,22 @@ std::string BurstCoin::server_RPC( const std::string &request_type, param_map_t 
 	ResponseCounts response_counts;		// only actually used in parallel mode
 	std::vector< std::future<std::string> > futures;
 
-	for(const auto &server_name : servers) {
-		std::string url = "http://" + server_name + "/burst";
+	#ifdef DEBUG_BURSTCOIN
+		std::cout << "TO ALL SERVERS: " << data << std::endl;
+	#endif
+
+	for (const auto &server_name : servers) {
+		std::string url = server_name + "/burst";
 
 		std::future<std::string> fetch_future = std::async( std::launch::async, fetch, url, data, "application/x-www-form-urlencoded", "", server_timeout );
 		futures.push_back( std::move(fetch_future) );
 	}
 
 	// short-sleep spin until all futures are ready/timed-out
-	while( futures.size() > 0 ) {
+	while ( futures.size() > 0 ) {
 		  std::chrono::milliseconds spin_period(100);
 
-		  for(int i=0; i<futures.size(); ++i)
+		  for (int i=0; i<futures.size(); ++i)
 			  if ( futures[i].wait_for(spin_period) == std::future_status::ready ) {
 				// this future is cooked!
 				std::string response = futures[i].get();
@@ -93,16 +119,49 @@ std::string BurstCoin::server_RPC( const std::string &request_type, param_map_t 
 				if ( response.empty() )
 					continue;
 
-				if ( response.find( "\"requestProcessingTime\":" ) == std::string::npos )
+				try {
+
+					#ifdef DEBUG_BURSTCOIN
+						std::cout << "RESPONSE TO " << data << ": " << response << std::endl;
+					#endif
+
+					JSON response_json(response);
+
+					if ( !response_json.null("errorCode") ) {
+						// response has error, some error codes are allowed...
+						const int response_error_code = response_json.get_number("errorCode");
+
+						bool has_allowed_error_code = false;
+						for (const int critical_error_code : critical_error_codes)
+							if (critical_error_code == response_error_code)
+								has_allowed_error_code = true;
+
+						// bad response but caller doesn't want to know - try next server
+						if (!has_allowed_error_code)
+							continue;
+					} else {
+						// a non-error response must have requestProcessingTime
+						if ( response_json.null("requestProcessingTime") )
+							continue;
+					}
+
+					// strip out requestProcessingTime, which may vary between servers
+					response_json.delete_item("requestProcessingTime");
+
+					// reconvert JSON back into string for map :(
+					// worse still, JSON will need to be normalized for proper comparison,
+					// so we need to alpha-sort keys
+					response_json.sort();
+					response = response_json.to_string();
+
+					// "response" is the key into the map, if entry doesn't exist, initialize with 0
+					auto insert_ret = response_counts.insert( std::make_pair(response, 0) );
+					// increase count (insert_ret.first is the entry-pair, ->second is the count itself)
+					++(insert_ret.first->second);
+
+				} catch (const JSON::parse_error &e) {
 					continue;
-
-				// strip out requestProcessingTime, which may vary between servers
-				response = std::regex_replace( response, std::regex("\"requestProcessingTime\":[[:digit:]]+"), "\"requestProcessingTime\":0" );
-
-				// "response" is the key into the map, if entry doesn't exist, initialize with 0
-				auto insert_ret = response_counts.insert( std::make_pair(response, 0) );
-				// increase count
-				++insert_ret.first;
+				}
 			}
 	}
 
@@ -114,11 +173,15 @@ std::string BurstCoin::server_RPC( const std::string &request_type, param_map_t 
 		throw CryptoCoins::server_issue();
 
 	// pick response with highest count
-	return response_counts.best_response();
+	return JSON( response_counts.best_response() );
 }
 
 
 CryptoCoinTx BurstCoin::convert_transaction_JSON(const JSON &transaction_json) {
+	// should contain at least this field
+	if ( transaction_json.null("transaction") )
+		throw CryptoCoins::server_issue();
+
 	CryptoCoinTx tx;
 	tx.currency = "BURST";
 
@@ -194,18 +257,10 @@ std::vector<CryptoCoinTx> BurstCoin::get_recent_transactions( std::string accoun
 	params["timestamp"] = std::to_string(burst_time);
 	params["numberOfConfirmations"] = std::to_string(include_unconfirmed ? 0 : 1);
 
-	std::string response_json = server_RPC("getAccountTransactions", &params);	// NB: deprecated in NRS, to be removed in NRS v1.6
-
-	JSON root;
-
-	try {
-		root = JSON(response_json);
-	} catch( const JSON::parse_error &e) {
-		throw CryptoCoins::server_issue();
-	}
+	JSON root = server_RPC("getAccountTransactions", &params);	// NB: deprecated in NRS, to be removed in NRS v1.6
 
 	if ( root.null("transactions") ) {
-		std::cerr << ftime() << "[BurstCoin::get_recent_transactions] getAccountTransactions RPC returned odd JSON:\n" << response_json << std::endl;
+		std::cerr << ftime() << "[BurstCoin::get_recent_transactions] getAccountTransactions RPC returned unexpected JSON:\n" << root.to_string() << std::endl;
 		throw CryptoCoins::server_issue();
 	}
 
@@ -213,10 +268,14 @@ std::vector<CryptoCoinTx> BurstCoin::get_recent_transactions( std::string accoun
 
 	JSON_Array transactions_json = root.get_array("transactions");
 
-	for(int i=0; i<transactions_json.size(); i++) {
+	for (int i=0; i<transactions_json.size(); ++i) {
 		JSON transaction_json = transactions_json.get_item(i);
 
-		if (transaction_json.get_number("type") == 0) {
+		int tx_type = transaction_json.get_number("type");
+		int tx_subtype = transaction_json.get_number("subtype");
+
+		// standard payment, subscription first payment or subscription recurring payment
+		if ( tx_type == 0 || (tx_type == 21 && (tx_subtype == 3 || tx_subtype == 5))) {
 			CryptoCoinTx tx = convert_transaction_JSON(transaction_json);
 			transactions.push_back( tx );
 		}
@@ -230,17 +289,9 @@ CryptoCoinTx BurstCoin::get_transaction( CryptoCoinTx info_tx ) {
 	param_map_t params;
 	params["transaction"] = info_tx.tx_id;
 
-	std::string response_json = server_RPC("getTransaction", &params);
+	JSON transaction_json = server_RPC("getTransaction", &params, false, {5} );	// errorCode 5 is unknown transaction
 
-	JSON transaction_json;
-
-	try {
-		transaction_json = JSON(response_json);
-	} catch( const JSON::parse_error &e) {
-		throw CryptoCoins::server_issue();
-	}
-
-	if ( transaction_json.null("type") || transaction_json.get_number("type") != 0 )
+	if ( !transaction_json.null("errorCode") && transaction_json.get_number("errorCode") == 5 )
 		throw CryptoCoins::unknown_transaction();
 
 	return convert_transaction_JSON(transaction_json);
@@ -282,8 +333,8 @@ bool BurstCoin::send_transaction( CryptoCoinTx &tx ) {
 	char pass[pass_len];
 	memset(pass, 0, pass_len);
 
-	for(int i=0; i<pass_len; i++)
-		pass[i] = tx.encoded_passphrase[i] ^ ( (i+1) % 16 );
+	for (int i=0; i<pass_len; ++i)
+		pass[i] = tx.encoded_passphrase[i] ^ ( (i+1) % 4 );
 
 	// use
 	params["secretPhrase"] = std::string(pass, pass_len);
@@ -297,18 +348,24 @@ bool BurstCoin::send_transaction( CryptoCoinTx &tx ) {
 					") to " << tx.recipient_amounts[0].recipient << std::endl;
 	#endif
 
-	std::string send_money_response = server_RPC("sendMoney", &params, true);
-
-	if ( send_money_response.empty() )
-		return false;
-
 	JSON response_json;
 
 	try {
-		response_json = JSON(send_money_response);
-	} catch( const JSON::parse_error &e) {
-		throw CryptoCoins::server_issue();
+		response_json = server_RPC("sendMoney", &params, true, {6} );	// errorCode 6 is not enough funds
+	} catch (const CryptoCoins::server_issue &e) {
+		// try to clean up secret in memory (arg "secret" is caller's responsiblity)
+		std::string &clean_me = params["secretPhrase"];
+		clean_me.replace(0, std::string::npos, clean_me.size(), 'x');
+
+		throw;
 	}
+
+	// try to clean up secret in memory (arg "secret" is caller's responsiblity)
+	std::string &clean_me = params["secretPhrase"];
+	clean_me.replace(0, std::string::npos, clean_me.size(), 'x');
+
+	if ( !response_json.null("errorCode") && response_json.get_number("errorCode") == 6 )
+		return false;
 
 	if ( !response_json.exists("signatureHash") )
 		return false;
@@ -332,7 +389,7 @@ CryptoCoinKeyPair BurstCoin::generate_keypair() {
 
 		static const char CHARS[] = "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789";
 
-		for(int i=0; i<len; i++)
+		for (int i=0; i<len; ++i)
 			passphrase[i] = CHARS[ arc4random_uniform(sizeof(CHARS) - 1) ];	// sizeof(CHARS) - 1 as we don't want to include NUL C-string terminator
 
 	
@@ -340,21 +397,12 @@ CryptoCoinKeyPair BurstCoin::generate_keypair() {
 		params["secretPhrase"] = URL_encode( std::string(passphrase, len) );
 
 		// generate account
-		std::string response = server_RPC("getAccountId", &params);
-
-		JSON response_json;
-
-		try {
-			response_json = JSON(response);
-		} catch( const JSON::parse_error &e) {
-			throw CryptoCoins::server_issue();
-		}
+		JSON response_json = server_RPC("getAccountId", &params);
 
 		if ( !response_json.exists("accountRS") )
 			throw std::runtime_error("Failed to generate keypair");
 	
 		CryptoCoinKeyPair kp;
-		// TODO check passphrase variable shouldn't be going outside of scope.
 		kp.priv_key = passphrase;
 		kp.pub_address = response_json.get_string("accountRS");
 		
@@ -378,52 +426,70 @@ std::string BurstCoin::pretty_amount( uint64_t amount ) {
 }
 
 
-std::string BurstCoin::get_account( const std::string &account ) {
+JSON BurstCoin::get_account( const std::string &account ) {
 	param_map_t params;
 	params["account"] = account;
 	return server_RPC("getAccount", &params);
 }
 
 
-std::string BurstCoin::get_reward_recipient( const std::string &account ) {
+JSON BurstCoin::get_reward_recipient( const std::string &account ) {
 	param_map_t params;
 	params["account"] = account;
 	return server_RPC("getRewardRecipient", &params);
 }
 
 
-std::string BurstCoin::get_mining_info() {
+JSON BurstCoin::get_mining_info() {
 	return server_RPC("getMiningInfo");
 }
 
 
-std::string BurstCoin::get_accounts_with_reward_recipient( const std::string &account ) {
+JSON BurstCoin::get_accounts_with_reward_recipient( const std::string &account ) {
 	param_map_t params;
 	params["account"] = account;
 	return server_RPC("getAccountsWithRewardRecipient", &params);
 }
 
 
-std::string BurstCoin::submit_nonce( const uint64_t nonce, const uint64_t account, const std::string &secret ) {
+JSON BurstCoin::submit_nonce( const uint64_t nonce, const uint64_t account, const std::string &secret ) {
 	param_map_t params;
 	params["nonce"] = std::to_string(nonce);
 	params["accountId"] = std::to_string(account);
 	params["secretPhrase"] = secret;
 
-	std::string output = server_RPC("submitNonce", &params);
+	JSON response_json;
+
+	try {
+		response_json = server_RPC("submitNonce", &params);
+	} catch (const CryptoCoins::server_issue &e) {
+		// try to clean up secret in memory (arg "secret" is caller's responsiblity)
+		std::string &clean_me = params["secretPhrase"];
+		clean_me.replace(0, std::string::npos, clean_me.size(), 'x');
+
+		throw;
+	}
 
 	// try to clean up secret in memory (arg "secret" is caller's responsiblity)
 	std::string &clean_me = params["secretPhrase"];
 	clean_me.replace(0, std::string::npos, clean_me.size(), 'x');
 
-	return output;
+	return response_json;
 }
 
 
-std::string BurstCoin::get_block( const uint64_t blockID ) {
+JSON BurstCoin::get_block( const uint64_t blockID ) {
 	param_map_t params;
 	params["height"] = std::to_string(blockID);
 	return server_RPC("getBlock", &params);
+}
+
+
+JSON BurstCoin::get_unconfirmed_transactionIDs( const uint64_t accountID ) {
+	param_map_t params;
+	if (accountID != 0)
+		params["account"] = std::to_string(accountID);
+	return server_RPC("getUnconfirmedTransactionIds", &params);
 }
 
 
@@ -458,7 +524,7 @@ std::string BurstCoin::accountID_to_RS_string( const uint64_t accountID ) {
 	char plain_string_10[BASE_10_LENGTH];
 	memset(plain_string_10, 0, BASE_10_LENGTH);
 
-    for(int i = 0; i < length; i++)
+    for (int i = 0; i < length; ++i)
         plain_string_10[i] = (char)plain_string[i] - (char)'0';
 
     int codeword_length = 0;
@@ -469,26 +535,26 @@ std::string BurstCoin::accountID_to_RS_string( const uint64_t accountID ) {
         int new_length = 0;
         int digit_32 = 0;
 
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < length; ++i) {
             digit_32 = digit_32 * 10 + plain_string_10[i];
 
             if (digit_32 >= 32) {
                 plain_string_10[new_length] = digit_32 >> 5;
                 digit_32 &= 31;
-                new_length++;
+                ++new_length;
             } else if (new_length > 0) {
                 plain_string_10[new_length] = 0;
-                new_length++;
+                ++new_length;
             }
         }
 
         length = new_length;
         codeword[codeword_length] = digit_32;
-        codeword_length++;
-    } while(length > 0);
+        ++codeword_length;
+    } while (length > 0);
 
     char p[] = {0, 0, 0, 0};
-    for (int i = BASE_32_LENGTH - 1; i >= 0; i--) {
+    for (int i = BASE_32_LENGTH - 1; i >= 0; --i) {
         char fb = codeword[i] ^ p[3];
         p[3] = p[2] ^ gmult(30, fb);
         p[2] = p[1] ^ gmult(6, fb);
@@ -496,12 +562,12 @@ std::string BurstCoin::accountID_to_RS_string( const uint64_t accountID ) {
         p[0] =        gmult(17, fb);
     }
 
-    for(int i = 0; i<sizeof(p); i++)
+    for (int i = 0; i<sizeof(p); ++i)
     	codeword[BASE_32_LENGTH + i] = p[i];
 
     std::string account_RS_string = "BURST-";
 
-    for (int i = 0; i < sizeof(initial_codeword); i++) {
+    for (int i = 0; i < sizeof(initial_codeword); ++i) {
         unsigned char codeword_index = codeword_map[i];
         unsigned char alphabet_index = codeword[codeword_index];
 

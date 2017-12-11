@@ -34,7 +34,7 @@ else
 CXXFLAGS+=-O0 -ferror-limit=3 -fno-omit-frame-pointer -fsanitize=address -DDORM_DB_DEBUG
 endif
 else
-CXXFLAGS+=-O3
+CXXFLAGS:=-O3 ${CXXFLAGS}
 endif
 
 INCDIRS=include

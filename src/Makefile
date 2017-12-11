@@ -13,3 +13,6 @@ ${OUTPUT_DIR}/src/shabal.o: shabal.h shabal-stripped.s
 
 shabal-stripped.s: shabal.s
 	grep -v '^\s*\#' shabal.s > shabal-stripped.s
+
+${OUTPUT_DIR}/check_submission: ${OUTPUT_DIR}/src/check_submission.o ${OUTPUT_DIR}/src/shabal.o
+	${CXX} ${CXXFLAGS} ${LDFLAGS} ${addprefix -L,${LIBDIRS}} -o $@ $^ -lDomUtil -lgcrypt -lcrypto -lcurl -lthr

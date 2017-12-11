@@ -21,10 +21,12 @@
 
 class Reward: public Reward_ {
 	public:
+		DORM::SearchMod<uint64_t> after_blockID;
 		DORM::SearchMod<uint64_t> before_blockID;
 		DORM::SearchMod<uint64_t> below_amount;
 		DORM::SearchMod<uint64_t> paid_before_block_id;
 		DORM::SearchMod<bool> oldest_first;
+		DORM::SearchMod<bool> oldest_per_account_first;
 		DORM::SearchMod<bool> one_result_per_account;
 
 		virtual void search_prep( DORM::Query &query ) const override;

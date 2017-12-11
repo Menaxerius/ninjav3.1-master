@@ -50,18 +50,24 @@ uint64_t Account::estimate_capacity(const uint64_t latest_blockID) {
 	shares.limit = ESTIMATED_CAPACITY_DEADLINES;
 	shares.search();
 
-	uint64_t total = 0;
+	std::vector<uint64_t> deadlines;
 	while( auto share = shares.result() )
-		total += share->deadline(); // actually weighted deadline
+		deadlines.push_back( share->deadline() ); // actually weighted deadline
 
-	uint64_t mean_weighted_deadline = total / ESTIMATED_CAPACITY_DEADLINES;
+	uint64_t total = 0;
+	const int n_half_deadlines = deadlines.size() / 2;
+	for(int i=0; i<n_half_deadlines; ++i)
+		total += deadlines[i];
+
+	if (n_half_deadlines == 0)
+		return 0;
+
+	const uint64_t mean_weighted_deadline = total / n_half_deadlines;
 	if (mean_weighted_deadline == 0)
 		return 0;
 
 	// capacity in GiB
-	// fudge based on known capacity of known account!!
-	// CatBref (15188591833767009677) had 120190592 nonces = 31507242549248 bytes (~31TB)
-	const uint64_t fudge_factor = 48541769974784UL;
+	const uint64_t fudge_factor = 5e12;
 	return fudge_factor / mean_weighted_deadline;
 }
 

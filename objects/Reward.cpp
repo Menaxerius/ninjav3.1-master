@@ -1,9 +1,13 @@
 #include "Reward.hpp"
 
 #include "DORM/sql/sqlLt.hpp"
+#include "DORM/sql/sqlGt.hpp"
 
 
 void Reward::search_prep( DORM::Query &query ) const {
+	if (after_blockID)
+		query.and_where( DORM::sqlGt<uint64_t>( "blockID", after_blockID() ) );
+
 	if (before_blockID)
 		query.and_where( DORM::sqlLt<uint64_t>( "blockID", before_blockID() ) );
 
@@ -15,6 +19,9 @@ void Reward::search_prep( DORM::Query &query ) const {
 
 	if (oldest_first)
 		query.order_by = "blockID ASC";
+
+	if (oldest_per_account_first)
+		query.order_by = "accountID, blockID ASC";
 
 	if (one_result_per_account)
 		query.group_by = "accountID";

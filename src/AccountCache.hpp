@@ -29,6 +29,7 @@ class AccountCache {
 		static time_t last_submit_timestamp(const uint64_t accountID);
 		static void new_submit_timestamp(const uint64_t accountID, const time_t new_timestamp);
 		static void update_account_capacity(const uint64_t accountID, const uint64_t capacity);
+		static void update_reward_recipients(const uint64_t latest_blockID, const JSON_Array &accounts_json_array);
 };
 
 #endif

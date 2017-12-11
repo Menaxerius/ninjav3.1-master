@@ -1,6 +1,10 @@
 #include "JSON.hpp"
 #include <stdlib.h>
 #include <stdexcept>
+#include <vector>
+#include <algorithm>
+
+#include <iostream>
 
 
 // JSON //
@@ -103,6 +107,49 @@ JSON_Array JSON::_get_array( cJSON *item ) {
 		throw std::runtime_error("cJSON item not a array");
 
 	return JSON_Array(item, false);
+}
+
+
+bool JSON::compare_cJSON_children(const cJSON *left, const cJSON *right) {
+	return std::string(left->string) < std::string(right->string);
+}
+
+
+void JSON::sort(cJSON *cjson) {
+	if (cjson->child == nullptr)
+		return;
+
+	std::vector<cJSON *> children;
+
+	cJSON *c = cjson->child;
+	while(c) {
+		children.push_back(c);
+		c = c->next;
+	}
+
+	// only actually sort if Object (not Array)
+	if (cjson->type == cJSON_Object)
+		std::sort( children.begin(), children.end(), JSON::compare_cJSON_children );
+
+	// rebuild
+	cJSON *prev = nullptr;
+
+	for(int i=0; i<children.size(); ++i) {
+		children[i]->prev = prev;
+
+		if (prev)
+			prev->next = children[i];
+
+		prev = children[i];
+
+		if (prev->type == cJSON_Object || prev->type == cJSON_Array)
+			JSON::sort(prev);
+	}
+
+	if (prev)
+		prev->next = nullptr;
+
+	cjson->child = children[0];
 }
 
 
@@ -240,6 +287,11 @@ std::string JSON::to_string() {
 	free(json);
 	
 	return json_string;
+}
+
+
+void JSON::sort() {
+	JSON::sort(cjson);
 }
 
 

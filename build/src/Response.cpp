@@ -104,18 +104,27 @@ void Response::upgrade_protocol( std::string upgrade_proto, MHD_UpgradeHandler h
 
 int Response::upgrade_websocket( Request *req, std::string websock_proto, MHD_UpgradeHandler handler ) {
 	if (  strcasecmp( req->get_header("Upgrade").c_str(), (char *)"websocket" ) != 0 ) {
-		std::cout << "Upgrade to websocket requested but header != websocket: " << req->get_header("Upgrade") << std::endl;
+		#ifdef RESPONSE_DEBUG
+			std::cout << "Upgrade to websocket requested but header != websocket: " << req->get_header("Upgrade") << std::endl;
+		#endif
+
 		return MHD_NO;
 	}
 
 	if (req->get_header("Sec-WebSocket-Version") != "13") {
-		std::cout << "Upgrade to websocket requested but version != 13: " << req->get_header("Sec-WebSocket-Version") << std::endl;
+		#ifdef RESPONSE_DEBUG
+			std::cout << "Upgrade to websocket requested but version != 13: " << req->get_header("Sec-WebSocket-Version") << std::endl;
+		#endif
+
 		return MHD_NO;
 	}
 
 	std::string websock_key = req->get_header("Sec-WebSocket-Key");
 	if ( websock_key.empty() ) {
-		std::cout << "Upgrade to websocket requested but key empty?" << std::endl;
+		#ifdef RESPONSE_DEBUG
+			std::cout << "Upgrade to websocket requested but key empty?" << std::endl;
+		#endif
+
 		return MHD_NO;
 	}
 
@@ -123,7 +132,10 @@ int Response::upgrade_websocket( Request *req, std::string websock_proto, MHD_Up
 	std::regex rgx("(^|, ?)" + websock_proto + "(, ?|$)");
 	// passed websock_proto needs to be in above list
 	if ( !std::regex_match(websock_protos, rgx) ) {
-		std::cout << "Upgrade to websocket requested but passed protocol '" << websock_protos << "' doesn't match '" << websock_proto << "'" << std::endl;
+		#ifdef RESPONSE_DEBUG
+			std::cout << "Upgrade to websocket requested but passed protocol '" << websock_protos << "' doesn't match '" << websock_proto << "'" << std::endl;
+		#endif
+
 		return MHD_NO;
 	}
 
@@ -136,7 +148,7 @@ int Response::upgrade_websocket( Request *req, std::string websock_proto, MHD_Up
 	base64_encode( &websock_hash64, (const char *)websock_hash, 20);
 
 	void *cls = req;
-	upgrade_protocol( "websocket", handler, cls);
+	upgrade_protocol( "Websocket", handler, cls);	// MUST be upper 'W' for Edge (thanks, Microsoft)
 
 	// add some more headers
 	add_header( "Sec-WebSocket-Accept", std::string(websock_hash64) );

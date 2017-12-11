@@ -27,6 +27,9 @@ class JSON {
 		static JSON _get_item( cJSON *item );
 		static JSON_Array _get_array( cJSON *item );
 
+		static bool compare_cJSON_children( const cJSON *left, const cJSON *right );
+		static void sort( cJSON *object );
+
 	public:
 		class parse_error: public std::runtime_error {
 			public:
@@ -123,6 +126,8 @@ class JSON {
 		void delete_item( const std::string &name );
 
 		std::string to_string();
+
+		void sort();
 };
 
 

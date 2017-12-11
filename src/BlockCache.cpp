@@ -2,6 +2,7 @@
 
 #include "Nonce.hpp"
 
+#include "AccountCache.hpp"
 #include "SubmissionCache.hpp"
 #include "config.hpp"
 
@@ -14,8 +15,11 @@ std::unique_ptr<Block>	BlockCache::latest_block;
 std::unique_ptr<Block>	BlockCache::previous_block;
 std::mutex				BlockCache::block_mutex;
 std::string				BlockCache::mining_info;
-uint64_t				BlockCache::latest_blockID = 0;
 std::string				BlockCache::latest_generation_signature;
+
+std::atomic<uint64_t>	BlockCache::latest_blockID( 0 );
+std::atomic<uint64_t>	BlockCache::pool_balance( 0 );
+std::atomic<uint64_t>	BlockCache::deferred_total( 0 );
 
 
 std::string BlockCache::get_mining_info() {
@@ -51,27 +55,34 @@ bool BlockCache::update_latest_block(const uint64_t blockID, const uint64_t base
 	latest_block->generation_signature(generation_signature);
 	latest_block->scoop( Block::calculate_scoop(blockID, generation_signature) );
 
-	// number of potential miners
+	// number of potential miners and batch-update of accounts' reward recipient
+	bool bulk_updated_reward_recipients = false;
 	try {
 		BurstCoin burst(BURST_SERVERS, BURST_SERVER_TIMEOUT);
 
-		const std::string accounts_info = burst.get_accounts_with_reward_recipient(OUR_ACCOUNT_RS);
-		JSON accounts_json(accounts_info);
+		JSON accounts_json = burst.get_accounts_with_reward_recipient(OUR_ACCOUNT_RS);
 
-		if ( !accounts_json.null("accounts") )
-			latest_block->num_potential_miners( accounts_json.get_array("accounts").size() );
+		if ( !accounts_json.null("accounts") ) {
+			const JSON_Array accounts_json_array = accounts_json.get_array("accounts");
+			latest_block->num_potential_miners( accounts_json_array.size() );
+
+			// update a whole load of accounts' reward recipient for free
+			// to save a ton of calls when each account submits their first nonce for this block
+			AccountCache::update_reward_recipients(blockID, accounts_json_array);
+			bulk_updated_reward_recipients = true;
+		}
 	} catch (const CryptoCoins::server_issue &e) {
-		// not good, but not fatal
-	} catch (const JSON::parse_error &e) {
 		// not good, but not fatal
 	}
 
 	latest_block->save();
 
 	if ( blockID > latest_blockID ) {
-		std::cout << ftime() << "New block! Block: " << blockID << ", scoop: " << latest_block->scoop() << std::endl;
+		std::cout << ftime() << "New block! Block: " << blockID << ", scoop: " << latest_block->scoop() <<
+				(bulk_updated_reward_recipients ? ", with bulk reward recipient update" : ", no reward recipients") << std::endl;
 	} else {
-		std::cout << ftime() << "Block " << blockID << " generation signature changed! Forked blockchain recoalescing? New scoop: " << latest_block->scoop() << std::endl;
+		std::cout << ftime() << "Block " << blockID << " generation signature changed! Forked blockchain recoalescing? New scoop: " << latest_block->scoop() <<
+				(bulk_updated_reward_recipients ? ", with bulk reward recipient update" : ", no reward recipients") << std::endl;
 		// start again
 		latest_block_already_existed = false;
 	}
@@ -80,6 +91,7 @@ bool BlockCache::update_latest_block(const uint64_t blockID, const uint64_t base
 	JSON mining_info_JSON;
 	mining_info_JSON.add_string( "generationSignature", generation_signature );
 	mining_info_JSON.add_string( "baseTarget", std::to_string(base_target) );
+	mining_info_JSON.add_int( "requestProcessingTime", 0 );
 	mining_info_JSON.add_string( "height", std::to_string(blockID) );
 	mining_info_JSON.add_string( "targetDeadline", std::to_string(DEADLINE_MAX) );
 	mining_info = mining_info_JSON.to_string();

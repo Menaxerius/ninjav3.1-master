@@ -4,7 +4,7 @@
 #include "CryptoCoins.hpp"
 
 #include "JSON.hpp"
-#include <bsd/stdlib.h>
+
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -21,7 +21,7 @@ class BurstCoin : public CryptoCoin {
 
 		typedef std::map<std::string, std::string> param_map_t;
 
-		std::string server_RPC( const std::string &request_type, param_map_t *params = nullptr, const bool first_server_only = false );
+		JSON server_RPC( const std::string &request_type, param_map_t *params = nullptr, const bool first_server_only = false, const std::vector<int> &critical_error_codes = {} );
 
 		CryptoCoinTx convert_transaction_JSON(const JSON &transaction_json);
 
@@ -43,12 +43,13 @@ class BurstCoin : public CryptoCoin {
 		virtual std::string pretty_amount( uint64_t amount );
 
 		// these are essentially NXT API calls
-		std::string get_account( const std::string &account );
-		std::string get_reward_recipient( const std::string &account );
-		std::string get_mining_info();
-		std::string get_accounts_with_reward_recipient( const std::string &account );
-		std::string submit_nonce( const uint64_t nonce, const uint64_t account, const std::string &secret );
-		std::string get_block( const uint64_t blockID );
+		JSON get_account( const std::string &account );
+		JSON get_reward_recipient( const std::string &account );
+		JSON get_mining_info();
+		JSON get_accounts_with_reward_recipient( const std::string &account );
+		JSON submit_nonce( const uint64_t nonce, const uint64_t account, const std::string &secret );
+		JSON get_block( const uint64_t blockID );
+		JSON get_unconfirmed_transactionIDs( const uint64_t accountID = 0 );
 
 		static std::string accountID_to_RS_string( const uint64_t accountID );
 };

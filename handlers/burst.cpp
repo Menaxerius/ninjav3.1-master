@@ -8,11 +8,11 @@
 
 Handler *Handlers::burst::route( struct MHD_Connection *connection, Request *req, Response *resp ) {
 	// if there's no Content-Type header we need to add it to appease libmicrohttpd
-	if ( MHD_lookup_connection_value(connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_CONTENT_TYPE) == NULL )
+	if ( MHD_lookup_connection_value(connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_CONTENT_TYPE) == nullptr )
 		MHD_set_connection_value(connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_CONTENT_TYPE, (char *)"application/x-www-form-urlencoded");
 
 	// no need for any more routing
-	return NULL;
+	return nullptr;
 }
 
 

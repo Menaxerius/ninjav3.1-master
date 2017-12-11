@@ -39,11 +39,11 @@ void Block::search_prep( DORM::Query &query ) const {
 void Block::reward_miners() {
 	BurstCoin burst("No server, just needed for pretty_amount()");
 
-	uint64_t reward_to_share = this->block_reward() * BURST_TO_NQT;
+	uint64_t reward_to_share = this->block_reward() * BURST_TO_NQT + this->tx_fees();
 
 	// remove fees, etc. from potential reward to be shared
-	uint64_t pool_fee = reward_to_share * POOL_FEE_FRACTION;
-	reward_to_share -= pool_fee - PAYMENT_SEND_FEE;
+	const uint64_t pool_fee = reward_to_share * POOL_FEE_FRACTION;
+	reward_to_share -= pool_fee;
 
 	std::map<uint64_t, uint64_t > reward_amounts_by_accountID;
 
@@ -76,10 +76,6 @@ void Block::reward_miners() {
 		sum_historic_rewards += amount;
 	}
 
-	// miners pay transaction fees
-	uint64_t transaction_fees = reward_amounts_by_accountID.size() * PAYMENT_SEND_FEE;
-	reward_to_share -= transaction_fees;
-
 	uint64_t sum_rewarded = 0;
 	for(const auto &it : reward_amounts_by_accountID) {
 		const uint64_t reward_amount = it.second;
@@ -96,112 +92,23 @@ void Block::reward_miners() {
 	this->has_been_shared(true);
 	this->save();
 
-	std::cout << ftime() << "Block " << blockID() << " reward: " << block_reward() << " BURST, pool fee: " << burst.pretty_amount(pool_fee) <<
-				", rewarded: " << burst.pretty_amount(sum_rewarded) << ", tx fees: " << burst.pretty_amount(transaction_fees) << std::endl;
+	std::cout << ftime() << "Block " << blockID() << " reward: " << block_reward() << " BURST + tx fees: " << burst.pretty_amount( tx_fees() )
+			<< ", pool fee: " << burst.pretty_amount(pool_fee)
+			<< ", rewarded: " << burst.pretty_amount(sum_finding_rewards) << " (current) + " << burst.pretty_amount(sum_historic_rewards) << " (historic) = "
+			<< burst.pretty_amount(sum_rewarded) << std::endl;
 }
 
 
-/*
-std::unique_ptr<Block> Block::latest_block() {
-	Block blocks;
-	blocks.newest_first(true);
-	return blocks.load();
-}
-
-
-uint64_t Block::latest_blockID() {
-	// this code is slightly more raw/closer to SQL
-	// as we're just after the blockID
-	// so no need to load the whole block record
-	// plus blockID should come direct from index
-	DORM::Query query;
-	query.tables = DORM::Tables( static_table_name() );
-	query.cols = { "blockID" };
-
-	query.order_by = "blockID DESC";
-	query.limit = 1;
-
-	return DORM::DB::fetch_uint64(query);
-}
-
-
-std::unique_ptr<Block> Block::latest_won_block() {
-	Block blocks;
-	blocks.is_our_block(true);
-	blocks.newest_first(true);
-	return blocks.load();
-}
-*/
-
-
-/*
-std::unique_ptr<Nonce> Block::find_best_nonce( const uint64_t blockID ) {
-	Nonce nonces;
-	nonces.blockID( blockID );
-	nonces.is_blocks_best_deadline(true);
-	return nonces.load();
-}
-*/
-
-
-/*
-void Block::recalculate_shares( const uint64_t blockID ) {
-	// now assumes it is already within a block-serialized transaction
-
-	Nonce nonces;
-	nonces.blockID(blockID);
-	nonces.is_accounts_best_deadline(true);
-	nonces.search();
-
-	std::vector< std::unique_ptr<Nonce> > nonces_to_share;
-	double total_shares = 0.0;
-	std::vector<double> shares;
-
-	while( auto nonce = nonces.result() ) {
-		// it's actually possible (although rare) for deadline to be zero!
-		const uint64_t deadline = nonce->deadline() + 1;
-
-		double share = pow( static_cast<double>(deadline), SHARE_POWER_FACTOR );
-
-		share = 1.0 / share;
-		shares.push_back( share );
-
-		total_shares += share;
-
-		nonces_to_share.push_back( std::move(nonce) );
-	}
-
-	// no need to wipe old shares
-	// as existing shares only get insert/updated, never deleted
-	for(int i=0; i<nonces_to_share.size(); i++) {
-		const auto &nonce = nonces_to_share[i];
-		const double share_fraction = shares[i] / total_shares;
-
-		Share share;
-		share.blockID(blockID);
-		share.accountID( nonce->accountID() );
-		share.share_fraction( share_fraction );
-		share.deadline( nonce->deadline() );
-		share.deadline_string( nonce->deadline_string() );
-		share.miner( nonce->miner() );
-		share.save();
-	}
-}
-*/
-
-
-uint64_t Block::previous_reward_post_fee() {
-	Block blocks;
-	blocks.newest_first(true);
-	blocks.has_reward_value(true);
-
-	auto prev_block = blocks.load();
-
-	if (!prev_block)
+uint64_t Block::calc_block_reward( const uint64_t block_height ) {
+	// code converted from BlockImpl.java
+	if (block_height == 0 || block_height >= 1944000)
 		return 0;
 
-	// works even if prev_block_reward is 0
-	return prev_block->block_reward() * (1 - POOL_FEE_FRACTION);
+	const int month = block_height / 10800;		// 10800 * 4mins = 30days (~1 month)
+
+	const uint64_t reward = std::floor( 10000.0 * std::pow( 0.95, month ) );
+
+	return reward * BURST_TO_NQT;
 }
 
 

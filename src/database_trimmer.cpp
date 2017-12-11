@@ -14,6 +14,10 @@
 #include <algorithm>
 
 
+// how long to wait after a new block for the nonce submission frenzy to calm down
+const int TRIM_DELAY = 6 * 60; // seconds
+
+
 void database_trimmer() {
     pthread_set_name_np(pthread_self(), "database_trimmer");
 
@@ -29,39 +33,10 @@ void database_trimmer() {
 		if (latest_blockID == current_blockID)
 			continue;	// no need to trim more than once per block
 
-		// we need DB connection from here on
-		// Check db connection
-		short counter = 0;
-		bool is_continue = false;
-		while (true){
-			try{
-				DORM::DB::check_connection();
-				break;
-			} catch (const DORM::DB::connection_issue &e) {
-				// DB being hammered by miners - try again in a moment
-				std::cerr  << ftime() << "[database_trimmer::database_trimmer] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
-				is_continue = true;
-				break;
-			} catch(const sql::SQLException &e) {
-				// Could not connect to db.
-				std::cerr  << ftime() << "[database_trimmer::database_trimmer] " << e.what() << std::endl;
-				std::cerr << ftime() << "[database_trimmer::database_trimmer] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
-				sleep(1);
-			}
-			++counter;
-			if(counter + 1 == DB_CONNECTION_ATTEMPT_COUNT){
-				std::cerr << ftime() << "[database_trimmer::database_trimmer] DB connect failed..." << std::endl;
-				throw;
-			}
-		}
-		if(is_continue){
-			continue;
-		}
-
 		// wait a short while for new block fever to calm down
 		// (also check there's not been another new block or that server termination has been requested)
-		for(int i=0; i<20 && !BaseHandler::time_to_die && latest_blockID == BlockCache::latest_blockID; ++i)
-			sleep(4);
+		for(int i=0; i<TRIM_DELAY && !BaseHandler::time_to_die && latest_blockID == BlockCache::latest_blockID; ++i)
+			sleep(1);
 
 		if (BaseHandler::time_to_die)
 			return;
@@ -69,6 +44,14 @@ void database_trimmer() {
 		// another new block already?
 		if (latest_blockID != BlockCache::latest_blockID)
 			continue;
+
+		// we need DB connection from here on
+		try {
+			DORM::DB::check_connection();
+		} catch (const DORM::DB::connection_issue &e) {
+			// DB being hammered by miners - try again in a moment
+			continue;
+		}
 
 		// how far to go back?
 		const uint64_t block_count = std::max( HISTORIC_BLOCK_COUNT, HISTORIC_CAPACITY_BLOCK_COUNT );
@@ -89,11 +72,11 @@ void database_trimmer() {
 		shares.search_and_destroy();
 
 		// we could probably do a few "optimize table" calls here
-		DORM::DB::execute("optimize table Accounts");
+		// DORM::DB::execute("optimize table Accounts");
 		DORM::DB::execute("optimize table Blocks");
-		DORM::DB::execute("optimize table Bonuses");
+		// DORM::DB::execute("optimize table Bonuses");
 		DORM::DB::execute("optimize table Nonces");
-		DORM::DB::execute("optimize table Rewards");
+		// DORM::DB::execute("optimize table Rewards");
 		DORM::DB::execute("optimize table Shares");
 
 		current_blockID = latest_blockID;
