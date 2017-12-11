@@ -15,6 +15,7 @@
 #include <map>
 #include <thread>
 #include <mutex>
+#include <atomic>
 #include <iostream>
 #include <cerrno>
 #include <cstring>
@@ -27,13 +28,15 @@ class WebSocketHandlerCommon: public Handler {
 	protected:
 		MHD_socket							sock;
 		struct MHD_UpgradeResponseHandle	*urh;
+		std::atomic_bool					is_exiting{ false };
+		std::mutex							alerting_mutex;
 };
 
 
 template<class SUBCLASS>
 class WebSocketHandler: public WebSocketHandlerCommon {
 	private:
-		static const int WEBSOCKET_BUFFER_SIZE = 65536;
+		static const int WEBSOCKET_BUFFER_SIZE = 0xFD00;
 
 	protected:
 		static std::map<MHD_socket, SUBCLASS *>		connections;
@@ -124,13 +127,19 @@ void WebSocketHandler<SUBCLASS>::websocket_receive_loop(SUBCLASS *obj, MHD_socke
 	add_connection(sock, obj);
 
 	// opportunity to send initial output
-	websocket_alert();
+	{
+		std::lock_guard<std::mutex> alert_lock(obj->alerting_mutex);
+		websocket_alert();
+	}
 
-	// raw socket buffer
+	// reset thread name in case it changed in websocket_alert() above
+    pthread_set_name_np(pthread_self(), "websocket-recv");
+
+    // raw socket buffer
 	char buffer[WEBSOCKET_BUFFER_SIZE];
 	size_t buffer_offset = 0;
 
-	while(1) {
+	while( !is_exiting ) {
 		const int nread = read( sock, buffer + buffer_offset, sizeof(buffer) - buffer_offset );
 
 		if (nread == -1)
@@ -167,17 +176,28 @@ void WebSocketHandler<SUBCLASS>::websocket_receive_loop(SUBCLASS *obj, MHD_socke
 		buffer_offset -= payload_offset;
 	}
 
+	// set flag so that any future async_wake_up calls skip this connection
+	is_exiting = true;
+
+	// also grab alerting_mutex in case we need to wait for an on-going websocket_alert
+	// (otherwise we'll destroy the object underneath on exit here, causing a segfault)
+	alerting_mutex.lock();
+
 	// remove connection from "connections"
 	remove_connection(sock);
 
-	MHD_upgrade_action(urh, MHD_UPGRADE_ACTION_CLOSE);
+	int MHD_ret = MHD_upgrade_action(urh, MHD_UPGRADE_ACTION_CLOSE);
+
+	if (MHD_ret == MHD_NO)
+		std::cerr << "MHD_upgrade_action() returned MHD_NO" << std::endl;
 }
 
 
 template<class SUBCLASS>
 void WebSocketHandler<SUBCLASS>::close_websocket() {
-	// calling shutdown causes read() in receive thread to return
-	shutdown(sock, SHUT_RDWR);
+	// don't use shutdown() as it conflicts with libmicrohttpd
+	// use atomic exit flag instead
+	is_exiting = true;
 }
 
 
@@ -189,10 +209,8 @@ void WebSocketHandler<SUBCLASS>::send_websocket_frame(const WebSocketFrame &wsf)
 
 	int nwrote = write(sock, wsf.payload_data, wsf.payload_len);
 
-	if (nwrote == -1) {
-		std::cerr << "Websocket frame write() failed: " << std::strerror(errno) << std::endl;
+	if (nwrote == -1 && errno != EAGAIN)
 		close_websocket();
-	}
 }
 
 
@@ -201,36 +219,55 @@ void WebSocketHandler<SUBCLASS>::async_wake_up() {
 
 	try {
 		DORM::DB::check_connection();
-
-		// wait on a mutex to serialize wake_up()s / prevent races
-		// also stops corruption to connections iterator
-		// we only need one thread doing wake_up
-		if ( !connections_mutex.try_lock() )
-			return;
-
-		// prepare before calling websocket_alert for each connection
-		// e.g. read data that is common to all alerts
-		SUBCLASS::websocket_alert_prepare();
-
-		std::vector<std::thread> alert_threads;
-
-		for(const auto &conn_pair : connections) {
-			std::thread alert_thread = std::thread( &SUBCLASS::websocket_alert, conn_pair.second );
-			alert_threads.push_back( std::move(alert_thread) );
-		}
-
-		for(auto &alert_thread : alert_threads)
-			alert_thread.join();
-
-		connections_mutex.unlock();
 	} catch(const DORM::DB::connection_issue &e) {
 		// non-fatal
-		std::cerr  << ftime() << "[WebSocketHandler::async_wake_up] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
-	} catch(const std::exception &e) {
-		// we still need to release mutex
-        connections_mutex.unlock();
-		std::cerr  << ftime() << "[WebSocketHandler::async_wake_up] Exception :" << e.what() << std::endl;
-		throw(e);
+		return;
+	}
+
+	// wait on a mutex to serialize wake_up()s / prevent races
+	// also stops corruption to connections iterator
+	// we only need one thread doing wake_up
+	std::unique_lock<std::mutex> mutex_lock(connections_mutex, std::try_to_lock);
+
+	if ( !mutex_lock )
+		return;	// we didn't get the lock
+
+	// prepare before calling websocket_alert for each connection
+	// e.g. read data that is common to all alerts
+	SUBCLASS::websocket_alert_prepare();
+
+	class alert {
+		public:
+			SUBCLASS						*obj;
+			std::unique_lock<std::mutex>	alert_lock;
+			std::thread						alert_thread;
+	};
+
+	std::vector<alert> alerts;
+
+	for(const auto &conn_pair : connections) {
+		SUBCLASS *obj = conn_pair.second;
+
+		// don't call websocket_alert if connection is already being destroyed
+		if ( obj->is_exiting )
+			continue;
+
+		// don't call websocket_alert if there's an existing on-going alert in progress
+		std::unique_lock<std::mutex> alert_lock(obj->alerting_mutex, std::try_to_lock);
+		if ( !alert_lock )
+			continue;
+
+		std::thread alert_thread = std::thread( &SUBCLASS::websocket_alert, obj );
+
+		alerts.push_back( alert{obj, std::move(alert_lock), std::move(alert_thread)} );
+	}
+
+	mutex_lock.unlock();
+
+	// wait for threads to exit so we can unlock their alerting_mutex
+	for(auto &alert : alerts) {
+		alert.alert_thread.join();
+		alert.alert_lock.unlock();
 	}
 }
 
@@ -258,7 +295,15 @@ void WebSocketHandler<SUBCLASS>::upgrade_handler(void *cls, struct MHD_Connectio
 
 template<class SUBCLASS>
 int WebSocketHandler<SUBCLASS>::process( struct MHD_Connection *connection, Request *req, Response *resp ) {
-	return resp->upgrade_websocket( req, SUBCLASS::websocket_protocol, WebSocketHandler::upgrade_handler );
+	const int upgrade_result = resp->upgrade_websocket( req, SUBCLASS::websocket_protocol, WebSocketHandler::upgrade_handler );
+
+	if (upgrade_result == MHD_YES)
+		return upgrade_result;
+
+	// not valid - produce error
+	resp->status_code = 400;
+	resp->content = "Bad Request";
+	return MHD_YES;
 }
 
 
