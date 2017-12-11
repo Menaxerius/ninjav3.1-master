@@ -28,13 +28,11 @@
 #include <unistd.h>
 #include <grp.h>
 
-#include <limits.h>
-
 #include "pthread_np_shim.hpp"
 
 
 
-static const uint64_t POST_BUFFER_SIZE = 65536;
+static const uint64_t POST_BUFFER_SIZE = 0xDF00;
 static volatile bool time_to_die = false;
 
 
@@ -63,10 +61,13 @@ static int access_handler_initial( void *cls, struct MHD_Connection *connection,
 	} else {
 		// HTTP method not supported
 		delete req;
-		std::cout << ftime() << method << " not supported" << std::endl;
-		
-		// could send 400 BAD REQUEST?
-		return MHD_NO;
+
+		char error[] = "Bad request";
+
+		struct MHD_Response *response = MHD_create_response_from_buffer( strlen(error), (void*) error, MHD_RESPMEM_MUST_COPY );
+		MHD_queue_response( connection, 400, response );
+	 	MHD_destroy_response( response );
+	 	return MHD_YES;
 	}
 
 	pthread_set_name_np( pthread_self(), method );
@@ -79,19 +80,16 @@ static int access_handler_initial( void *cls, struct MHD_Connection *connection,
 	try {
 		DORM::DB::check_connection();
 	} catch (const DORM::DB::connection_issue &e) {
+		delete req;
+
 		// Sorry, too busy!
-        std::cerr  << ftime() << "[server::access_handler_initial] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
 		char error[] = "Sorry, too busy - try again in a moment";
 
 		struct MHD_Response *response = MHD_create_response_from_buffer( strlen(error), (void*) error, MHD_RESPMEM_MUST_COPY );
 		MHD_queue_response( connection, 503, response );
 	 	MHD_destroy_response( response );
 	 	return MHD_YES;
-	} catch(const sql::SQLException &e) {
-        // Could not connect to db.
-        std::cerr << ftime() << "[server::access_handler_initial] " << e.what() << std::endl;
-        throw e;
-    }
+	}
 
 	// parse cookies
 	req->parse_cookies( connection );
@@ -193,15 +191,17 @@ static int access_handler_initial( void *cls, struct MHD_Connection *connection,
 			}
 
 			// fall-through failure
-			std::cout << ftime() << "couldn't create POST processor for " << url << std::endl;
-
 			delete req_resp;
 			delete req;
 			delete resp;
 
-			// could send 500 INTERNAL SERVER ERROR?
-			// or special 500 page
-			return MHD_NO;
+			char error[] = "Bad request";
+
+			struct MHD_Response *response = MHD_create_response_from_buffer( strlen(error), (void*) error, MHD_RESPMEM_MUST_COPY );
+			MHD_queue_response( connection, 400, response );
+		 	MHD_destroy_response( response );
+
+			return MHD_YES;
 		}
 	}
 
@@ -354,7 +354,7 @@ static std::string read_file(const std::string &src_filename) {
 
 
 static struct MHD_Daemon *init_daemon() {
-	unsigned int flags = MHD_USE_THREAD_PER_CONNECTION | MHD_USE_DEBUG | MHD_USE_POLL | MHD_USE_ITC | MHD_USE_INTERNAL_POLLING_THREAD | MHD_ALLOW_UPGRADE;
+	unsigned int flags = MHD_USE_DEBUG | MHD_USE_POLL | MHD_USE_ITC | MHD_USE_INTERNAL_POLLING_THREAD | MHD_ALLOW_UPGRADE | MHD_USE_THREAD_PER_CONNECTION;
 
 	int pton_error;
 	struct sockaddr_in6 sock_addr6;
@@ -415,20 +415,17 @@ static struct MHD_Daemon *init_daemon() {
 	MHD_AccessHandlerCallback dh = &access_handler;
 	void *dh_cls = nullptr;
 	
-	// broken? (see below)
-	// unsigned int conn_timeout = 30;
-    // default value was 4096
-    unsigned int conn_limit = UINT_MAX;
-    // default value was 1024
-    unsigned int listen_queue_size = 10240;
+	unsigned int conn_timeout = 2; // seconds
+	unsigned int conn_limit = 4096;
+	unsigned int listen_queue_size = 1024;
 
 	if (USE_SSL)
 		return MHD_start_daemon( flags, port, apc, apc_cls, dh, dh_cls,
 									MHD_OPTION_NOTIFY_COMPLETED, &request_completed, nullptr,
 									MHD_OPTION_SOCK_ADDR, sock_addr,
-									// Broken? MHD_OPTION_CONNECTION_TIMEOUT, &conn_timeout,
-									MHD_OPTION_CONNECTION_LIMIT, &conn_limit,
-									MHD_OPTION_LISTEN_BACKLOG_SIZE, &listen_queue_size,
+									MHD_OPTION_CONNECTION_TIMEOUT, conn_timeout,
+									MHD_OPTION_CONNECTION_LIMIT, conn_limit,
+									MHD_OPTION_LISTEN_BACKLOG_SIZE, listen_queue_size,
 									MHD_OPTION_HTTPS_MEM_KEY, key_pem.c_str(),
 									MHD_OPTION_HTTPS_MEM_CERT, cert_pem.c_str(),
 									MHD_OPTION_HTTPS_MEM_TRUST, ca_pem.c_str(),
@@ -437,9 +434,9 @@ static struct MHD_Daemon *init_daemon() {
 		return MHD_start_daemon( flags, port, apc, apc_cls, dh, dh_cls,
 									MHD_OPTION_NOTIFY_COMPLETED, &request_completed, nullptr,
 									MHD_OPTION_SOCK_ADDR, sock_addr,
-									// Broken? MHD_OPTION_CONNECTION_TIMEOUT, &conn_timeout,
-									MHD_OPTION_CONNECTION_LIMIT, &conn_limit,
-									MHD_OPTION_LISTEN_BACKLOG_SIZE, &listen_queue_size,
+									MHD_OPTION_CONNECTION_TIMEOUT, conn_timeout,
+									MHD_OPTION_CONNECTION_LIMIT, conn_limit,
+									MHD_OPTION_LISTEN_BACKLOG_SIZE, listen_queue_size,
 									MHD_OPTION_END );
 }
 
@@ -482,28 +479,7 @@ int main(int argc, char **argv, char **envp) {
 	pthread_sigmask( SIG_BLOCK, &sigs, nullptr );
 
 	// uses config
-    // Check db connection
-    short counter = 0;
-    while (true){
-        try{
-            DORM::DB::connect( DB_URI, DB_USER, DB_PASSWORD, DB_SCHEMA );
-            break;
-        } catch (const DORM::DB::connection_issue &e) {
-            // DB being hammered by miners - try again in a moment
-            std::cerr  << ftime() << "[server::server] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
-            sleep(1);
-        } catch(const sql::SQLException &e) {
-            // Could not connect to db.
-            std::cerr << ftime() << "[server::server] " << e.what() << std::endl;
-            sleep(1);
-        }
-        std::cerr << ftime() << "[server::server] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
-        ++counter;
-        if(counter + 1 == DB_CONNECTION_ATTEMPT_COUNT){
-            std::cerr << ftime() << "[server::server] DB connect failed..." << std::endl;
-            throw;
-        }
-    }
+	DORM::DB::connect( DB_URI, DB_USER, DB_PASSWORD, DB_SCHEMA );
 
 	Handler *base_handler = handler_factory();
 	base_handler->global_init();

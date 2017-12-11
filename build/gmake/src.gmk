@@ -6,9 +6,9 @@ OUTPUT_DIR=../output
 CXXFLAGS+=-std=c++14 -g -fPIC -pipe -Wall -pthread
 
 ifdef DEBUG
-CXXFLAGS+=-ferror-limit=2 -O0 -fno-omit-frame-pointer -fsanitize=address
+CXXFLAGS:=-O0 -ferror-limit=2 -fno-omit-frame-pointer -fsanitize=address -fsanitize=leak ${CXXFLAGS}
 else
-CXXFLAGS+=-O3
+CXXFLAGS:=-O3 ${CXXFLAGS}
 endif
 
 OSNAME=${shell uname -s}
@@ -16,7 +16,7 @@ OSNAME=${shell uname -s}
 INCDIRS=. ../objects ../output/objects ../handlers ../templates ../output ../build/contrib/DORM/include ../build/include
 CXXFLAGS+=${addprefix -I,${INCDIRS}} -isystem /usr/local/include
 
-LIBS+=Handlers Templates Objects DomWWW DomUtil DORM mysqlcppconn mysqlclient curl microhttpd gnutls crypto gcrypt bsd resolv
+LIBS+=Handlers Templates Objects DomWWW DomUtil DORM mysqlcppconn mysqlclient curl microhttpd crypto gcrypt
 LIBDIRS+=../output ../build/lib ../build/contrib/DORM/lib /usr/local/lib /usr/local/lib/mysql /usr/lib64/mysql
 
 ifeq ( ${OSNAME}, "FreeBSD" )

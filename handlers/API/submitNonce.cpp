@@ -74,6 +74,12 @@ int Handlers::API::submitNonce::inner( struct MHD_Connection *connection, Reques
 		return MHD_YES;
 	}
 
+	if (account_id == 0) {
+		resp->status_code = 400;
+		resp->content = json_error(1013, "submitNonce request has bad 'accountId' parameter - should be uint64");
+		return MHD_YES;
+	}
+
 	// check accountID against ban list
 	if ( std::find( BANNED_ACCOUNT_IDS.begin(), BANNED_ACCOUNT_IDS.end(), account_id ) != BANNED_ACCOUNT_IDS.end() ) {
 		resp->status_code = 403;
@@ -220,7 +226,6 @@ int Handlers::API::submitNonce::inner( struct MHD_Connection *connection, Reques
 		new_nonce.miner( "Blago" );
 
 	SubmissionCache::save_and_rank( new_nonce );
-	NEW_NONCE = true;
 
 	// wake up update websockets! (async)
 	Handlers::WS::updates::wake_up();

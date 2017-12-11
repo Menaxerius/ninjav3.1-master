@@ -11,10 +11,10 @@ char *SHA256_End(SHA256_CTX *context, char *buffer) {
 		SHA256_Final(digest, context);
 
 		unsigned char *d = digest;
-		for(int i=0; i<SHA256_DIGEST_LENGTH; i++) {
+		for (int i=0; i<SHA256_DIGEST_LENGTH; ++i) {
 			*buffer++ = sha2_hex_digits[(*d & 0xf0) >> 4];
 			*buffer++ = sha2_hex_digits[*d & 0x0f];
-			d++;
+			++d;
 		}
 		*buffer = (char)0;
 	} else {

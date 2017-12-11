@@ -80,7 +80,7 @@ function XHR(options) {
 function blockExplorerLink(queryData, content) {
 	var link = document.createElement('A');
 	link.className = "blockex-link";
-	link.setAttribute( 'href', 'http://explorer.burstnation.com/' + queryData );
+	link.setAttribute( 'href', 'http://burstcoin.biz/' + queryData );
 	link.setAttribute( 'target', '_blank' );
 	link.appendChild( document.createTextNode(content) );
 	return link;
@@ -236,7 +236,7 @@ function sharesUpdate( sharesInfo ) {
 		var deadlineTd = entry.appendTd('', '', deadlineElem(share.deadline) );
 		
 		entry.appendTd('', '', (share.share * 100.0).toFixed(3) + '%');
-		entry.appendTd('', '', share.estimatedReward ? share.estimatedReward.toFixed(2) : '[wait]' );
+		entry.appendTd('', '', share.estimatedReward ? Number(share.estimatedReward / 100000000).toFixed(2) : '[wait]' );
 
 		currentList.appendChild(entry);
 	}
@@ -268,7 +268,7 @@ function historicUpdate(sharesInfo) {
 
 		entry.appendTd('', '', prettyMiningCapacity(account.miningCapacityTB, account.miningCapacityNotEstimated) );
 		entry.appendTd('', '', (share.share * 100.0).toFixed(3) + '%');
-		entry.appendTd('', '', share.estimatedReward ? share.estimatedReward.toFixed(2) : '[wait]' );
+		entry.appendTd('', '', share.estimatedReward ? Number(share.estimatedReward / 100000000).toFixed(2) : '[wait]' );
 		
 		var payouts = [];
 		
@@ -556,7 +556,7 @@ function updateRecentBlocksCallback(e) {
 			
 			var tr = document.createElement('TR');
 			
-			tr.appendTd('', '', blockExplorerLink('block/' + block.block, block.block) );
+			tr.appendTd('', '', blockExplorerLink('block/' + block.block_id, block.block) );
 
 			if ( !block.isOurBlock ) {
 				// two columns: 

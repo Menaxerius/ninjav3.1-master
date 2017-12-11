@@ -14,9 +14,9 @@ OBJS:=${patsubst %.ct, ${OUTPUT_DIR}/%.o, ${SRCS}}
 CXXFLAGS+=-std=c++14 -g -fPIC -pipe -Wall -pthread
 
 ifdef DEBUG
-CXXFLAGS+=-ferror-limit=2 -O0 -fno-omit-frame-pointer -fsanitize=address
+CXXFLAGS:=-O0 -ferror-limit=2 -fno-omit-frame-pointer -fsanitize=address ${CXXFLAGS}
 else
-CXXFLAGS+=-O3
+CXXFLAGS:=-O3 ${CXXFLAGS}
 endif
 
 INCDIRS=. ../objects ../output/objects ../handlers ../templates ../src ../output ../build/contrib/DORM/include ../build/include

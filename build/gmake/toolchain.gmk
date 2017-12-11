@@ -20,9 +20,9 @@ LDFLAGS=${LIBDIRS} ${LDRPATHS}
 CXXFLAGS+=-g -std=c++14 -pipe -fPIC -Wall
 
 ifdef DEBUG
-CXXFLAGS+=-O0 -ferror-limit=2 -fno-omit-frame-pointer -fsanitize=address
+CXXFLAGS:=-O0 -ferror-limit=2 -fno-omit-frame-pointer -fsanitize=address -fsanitize=leak ${CXXFLAGS}
 else
-CXXFLAGS+=-O3
+CXXFLAGS:=-O3 ${CXXFLAGS}
 endif
 
 .PATH: src include obj lib
