@@ -9,6 +9,12 @@
 #include <arpa/inet.h>
 
 
+WebSocketFrame::~WebSocketFrame() {
+	if (payload_data != nullptr)
+		free(payload_data);
+}
+
+
 void WebSocketFrame::pack(const std::string &payload) {
 	opcode = WS_TEXT;
 	pack( payload.c_str(), payload.size() );
@@ -16,9 +22,6 @@ void WebSocketFrame::pack(const std::string &payload) {
 
 
 void WebSocketFrame::pack(const char *buffer, const uint64_t buffer_len) {
-	if (payload_data != nullptr)
-		free(payload_data);
-
 	// determine length of payload buffer needed
 	payload_len = buffer_len + 1 + 1;	// flags + 1st octet of frame length
 
@@ -35,9 +38,12 @@ void WebSocketFrame::pack(const char *buffer, const uint64_t buffer_len) {
 	payload_len += payload_offset;
 
 	// now we can allocate space
+	if (payload_data != nullptr)
+		free(payload_data);
+
 	payload_data = (char *)malloc(payload_len);
 	if (payload_data == nullptr)
-		throw std::runtime_error("Can't malloc() space for websocket frame");
+		throw std::runtime_error("Can't malloc() space to pack websocket frame");
 
 	memset(payload_data, 0, payload_len);
 
@@ -91,12 +97,6 @@ void WebSocketFrame::pack(const char *buffer, const uint64_t buffer_len) {
 			fflush(stderr);
 		}
 	#endif
-}
-
-
-WebSocketFrame::~WebSocketFrame() {
-	if (payload_data != nullptr)
-		free(payload_data);
 }
 
 
@@ -169,7 +169,13 @@ uint64_t WebSocketFrame::unpack(const char *buffer, const uint64_t buffer_len) {
 	if (buffer_len < offset+payload_len)
 		return 0;
 
+	if (payload_data != nullptr)
+		free(payload_data);
+
 	payload_data = (char *)malloc(payload_len);
+	if (payload_data == nullptr)
+		throw std::runtime_error("Can't malloc() space to unpack websocket frame");
+
 	memcpy(payload_data, &buffer[offset], payload_len);
 
 	if (mask) {
