@@ -1,0 +1,34 @@
+Shutdown all but mysql process from OLD POOL:
+
+ps -Jburstpool | fgrep -v mysql | cut -d' ' -f1 | xargs kill
+
+Recreate ninja v3 database to receive migrated database:
+
+mysql --user=root -p --socket=/home/jail/burstpool/tmp/mysql.sock --database=migration < burstpool.sql
+
+Do actual migration:
+
+mysql --user=root -p --socket=/home/jail/burstpool/tmp/mysql.sock --database=migration < migration-commands.sql
+
+Dump migrated database and compress:
+
+mysqldump --user=root -p --socket=/home/jail/burstpool/tmp/mysql.sock migration > migrated-db.sql
+bzip2 migrated-db.sql
+
+
+copy migrated-db.sql.bz2 to new mobile pool VM
+
+
+FROM HERE ON WORK ON THE NEW POOL VM:
+
+(new or old pools should not be running)
+
+bzcat migrated-db.sql.bz2 | mysql --user=root -p --database=burstpool 
+
+change IP address of new pool VM to match old pool's IP
+
+fire up new pool:
+
+gmake restart
+
+check all is OK by examining server.log

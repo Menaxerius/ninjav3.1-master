@@ -1,0 +1,81 @@
+COMPILE INSTALL
+---------------
+
+Packages required for build:
+
+clang v3.9 (v3.4 doesn't work and v4 and v5 aren't stable yet)
+gmake v4 or later
+libmicrohttpd v0.9.54.1 or later (probably from their git)
+mysql/mariadb v5.6 or later
+mysql-connector-c++ v1.1.7 or later
+perl
+curl (for libcurl)
+gnutls
+gcrypt
+
+Dom's ORM from: https://sourceforge.net/projects/dom-s-orm/
+...which is automatically downloaded by the "build" toolchain
+
+
+BINARY-ONLY INSTALL
+-------------------
+
+Do "gmake package" on dev VM to generate pool-binaries.tar.xz file which can be simply extracted on the install VM.
+
+
+SERVER SETUP
+------------
+
+Increase max open files to something higher like 65536:
+Add these lines to /etc/security/limits.conf:
+
+burst	hard	nofile	65536
+burst	soft	nofile	65536
+
+Add this line to /etc/sysctl.cnf, then do "sysctl -p":
+
+fs.file-max = 2097152
+
+Check with: su - burst -c 'ulimit -Sa'
+
+Also, make sure OpenSSL (if not using LibreSSL) is at least v1.1.0
+If not, download source, then:
+./config shared threads && gmake && gmake install
+
+Followed by:
+echo '/usr/local/ssl/lib' > /etc/ld.so.conf.d/openssl-1.1.0.conf
+ldconfig
+
+You might have to rebuild other libraries that reference old /lib64/libcrypto.so,
+e.g. libmysqlclient, libcurl
+
+DATABASE SETUP
+--------------
+
+BEFORE creating pool database, the server config needs to be changed.
+
+Copy burstpool.cnf into /etc/my.cnf.d/
+
+If using /etc/my.cnf.d then check for this in /etc/my.cnf:
+# include all files from the config directory
+!includedir /etc/my.cnf.d
+
+
+Create burstpool database, to be run as mysql's "root":
+
+create database burstpool;
+grant delete,insert,lock tables,select,update on burstpool.* to BURSTPOOLUSERNAME@localhost identified by 'BURSTPOOLPASSWORD';
+
+Where BURSTPOOLUSERNAME and BURSTPOOLPASSWORD are the same as those in config.js
+
+
+To create database tables, use supplied 'burstpool.sql' or use DORM's emit_object_SQL thusly:
+
+mysql --user=root -p --database=burstpool < burstpool.sql
+
+OR
+
+build/contrib/DORM/bin/emit_object_SQL objects/*.hpp | mysql --user=root -p --database=burstpool
+
+(You will be prompted for mysql's root password in either case)
+ 

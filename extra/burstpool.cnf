@@ -1,0 +1,23 @@
+[server]
+innodb-file-per-table="ON"
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+init-connect="SET NAMES utf8mb4"
+wait-timeout=20
+max-connections=500
+skip-networking="ON"
+max_allowed_packet=8M
+
+read_buffer_size=2M
+read_rnd_buffer_size=2M
+
+sort_buffer_size=2M
+key_buffer_size=128M
+join_buffer_size=4M
+
+tmp_table_size=72M
+max_heap_table_size=72M
+
+table_open_cache=16384
+open_files_limit=16384
