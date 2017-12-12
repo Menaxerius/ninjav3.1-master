@@ -16,7 +16,7 @@ OSNAME=${shell uname -s}
 INCDIRS=. ../objects ../output/objects ../handlers ../templates ../output ../build/contrib/DORM/include ../build/include
 CXXFLAGS+=${addprefix -I,${INCDIRS}} -isystem /usr/local/include
 
-LIBS+=Handlers Templates Objects DomWWW DomUtil DORM mysqlcppconn mysqlclient curl microhttpd crypto gcrypt
+LIBS+=Handlers Templates Objects DomWWW DomUtil DORM mysqlcppconn mysqlclient curl microhttpd crypto gcrypt gnutls bsd resolv
 LIBDIRS+=../output ../build/lib ../build/contrib/DORM/lib /usr/local/lib /usr/local/lib/mysql /usr/lib64/mysql
 
 ifeq ( ${OSNAME}, "FreeBSD" )
