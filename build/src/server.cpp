@@ -416,8 +416,8 @@ static struct MHD_Daemon *init_daemon() {
 	void *dh_cls = nullptr;
 	
 	unsigned int conn_timeout = 2; // seconds
-	unsigned int conn_limit = 4096;
-	unsigned int listen_queue_size = 1024;
+	unsigned int conn_limit = 4096 * 2;
+	unsigned int listen_queue_size = 1024 * 2;
 
 	if (USE_SSL)
 		return MHD_start_daemon( flags, port, apc, apc_cls, dh, dh_cls,
