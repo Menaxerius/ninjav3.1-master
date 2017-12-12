@@ -1,0 +1,8 @@
+ALTER DATABASE burstpool CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+ALTER TABLE Accounts CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  ALTER TABLE Accounts CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE Blocks CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  ALTER TABLE Blocks CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE Bonuses CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  ALTER TABLE Bonuses CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE Nonces CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  ALTER TABLE Nonces CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE Rewards CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  ALTER TABLE Rewards CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE Shares CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  ALTER TABLE Shares CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
