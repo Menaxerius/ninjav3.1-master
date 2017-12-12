@@ -11,15 +11,21 @@
 #include "config.hpp"
 #include "mining_info.hpp"
 
+#include "BurstCoin.hpp"
 #include "pthread_np_shim.hpp"
 
 
 // private static
 std::string Handlers::WS::updates::block_msg;
+
 std::string Handlers::WS::updates::shares_msg;
 bool Handlers::WS::updates::shares_msg_changed = false;
+
 std::string Handlers::WS::updates::awards_msg;
+bool Handlers::WS::updates::awards_msg_changed = false;
+
 std::string Handlers::WS::updates::historic_shares_msg;
+
 const time_t Handlers::WS::updates::started_when = time(nullptr);
 std::mutex Handlers::WS::updates::updates_mutex;
 
@@ -28,6 +34,7 @@ std::mutex Handlers::WS::updates::updates_mutex;
 uint64_t Handlers::WS::updates::latest_blockID = 0;
 time_t Handlers::WS::updates::latest_block_when = 0;
 std::map<uint64_t,time_t> Handlers::WS::updates::all_seen_accounts;
+std::mutex Handlers::WS::updates::seen_accounts_mutex;
 
 
 // public static
@@ -54,6 +61,8 @@ void Handlers::WS::updates::check_block() {
 		awards_json.delete_item( "Deferred Payouts" );
 		awards_json.delete_item( "Queued Payouts" );
 		awards_json.delete_item( "Unconfirmed Payouts");
+		awards_json.delete_item( "Pool Balance");
+		awards_json.delete_item( "Deferred Total");
 
 		json.add_item("awards", awards_json);
 	}
@@ -70,7 +79,7 @@ void Handlers::WS::updates::check_block() {
 
 
 void Handlers::WS::updates::update_historic_shares() {
-	const uint64_t estimated_block_reward = Block::previous_reward_post_fee();
+	const uint64_t estimated_block_reward = Block::calc_block_reward(latest_blockID - 1) * (1 - POOL_FEE_FRACTION);	// post fee
 
 	auto historic_shares = Share::historic_shares( latest_blockID - 1, HISTORIC_BLOCK_COUNT );
 	historic_shares->search();
@@ -89,9 +98,8 @@ void Handlers::WS::updates::update_historic_shares() {
 
 		Reward unpaid_rewards;
 		unpaid_rewards.is_paid(false);
-		unpaid_rewards.before_blockID( latest_blockID - MIN_PAYOUT_BLOCK_DELAY );
+		unpaid_rewards.is_confirmed(false);
 		unpaid_rewards.accountID( share->accountID() );
-		unpaid_rewards.oldest_first(true);
 		unpaid_rewards.search();
 
         bool ok_to_pay = false;
@@ -143,7 +151,7 @@ void Handlers::WS::updates::update_historic_shares() {
 void Handlers::WS::updates::check_shares() {
 	shares_msg_changed = false;
 
-	uint64_t estimated_block_reward = Block::previous_reward_post_fee();
+	const uint64_t estimated_block_reward = Block::calc_block_reward(latest_blockID - 1) * (1 - POOL_FEE_FRACTION);	// post fee
 
 	JSON_Array shares_json_array;
 
@@ -176,13 +184,10 @@ void Handlers::WS::updates::check_shares() {
 
 	shares_msg = new_shares_msg;
 	shares_msg_changed = true;
-
-	// shares JSON has changed so also generate new awards
-	generate_awards();
 }
 
 
-void Handlers::WS::updates::generate_awards() {
+void Handlers::WS::updates::check_awards() {
 	JSON awards_json;
 
 	auto latest_block = BlockCache::clone_latest_block();
@@ -215,26 +220,27 @@ void Handlers::WS::updates::generate_awards() {
 	std::string nonces_award = std::to_string(good_nonce_count) + " good / " + std::to_string(rejected_nonce_count) + " bad";
 	awards_json.add_string( "Nonces Submitted", nonces_award );
 
-	// uptime
-	awards_json.add_string( "Uptime", Nonce::deadline_to_string( time(nullptr) - started_when ) );
-
-	// reward payouts in queue
+	// number of unconfirmed rewards
 	Reward rewards;
-	rewards.is_paid( false );
-	rewards.below_amount( MINIMUM_PAYOUT * BURST_TO_NQT );
-	const uint64_t too_small = rewards.count();
-	awards_json.add_uint( "Deferred Payouts", too_small );
-
-	rewards.clear();
-	rewards.is_paid( false );
-	const uint64_t unpaid = rewards.count() - too_small;
-	awards_json.add_uint( "Queued Payouts", unpaid );
-
 	rewards.is_paid( true );
 	rewards.is_confirmed( false );
 	awards_json.add_uint( "Unconfirmed Payouts", rewards.count() );
 
+	// pool balances
+	BurstCoin burst("no server");
+	awards_json.add_string( "Pool Balance", burst.pretty_amount(BlockCache::pool_balance) );
+	awards_json.add_string( "Deferred Total", burst.pretty_amount(BlockCache::deferred_total) );
+
+	std::string new_awards_msg = "AWARDS:" + awards_json.to_string();
+
+	if ( new_awards_msg == awards_msg )
+		return;
+
+	// uptime
+	awards_json.add_string( "Uptime", Nonce::deadline_to_string( time(nullptr) - started_when ) );
+
 	awards_msg = "AWARDS:" + awards_json.to_string();
+	awards_msg_changed = true;
 }
 
 
@@ -260,6 +266,9 @@ void Handlers::WS::updates::update_account_info( uint64_t accountID ) {
 		//  we've not seen it before OR
 		//  it's newer than our timestamp
 
+		// mutex needed as a separate thread does access (websocket_alert threads)
+		std::lock_guard<std::mutex> mutex_lock(seen_accounts_mutex);
+
 		if ( all_seen_accounts.find(accountID) == all_seen_accounts.end() || account->last_updated_when() > all_seen_accounts[accountID] )
 			all_seen_accounts[accountID] = account->last_updated_when();
 	}
@@ -269,18 +278,24 @@ void Handlers::WS::updates::update_account_info( uint64_t accountID ) {
 void Handlers::WS::updates::send_new_accounts() {
 	JSON_Array accounts_json_array;
 
-	for(const auto &seen_account_pair : all_seen_accounts ) {
-		auto insert_result = sent_accounts.insert( std::make_pair(seen_account_pair.first, 0) );
-		auto &sent_account_pair = insert_result.first;
+	{
+		// mutex needed as a separate thread updates the all_seen_accounts vector
+		std::lock_guard<std::mutex> mutex_lock(seen_accounts_mutex);
 
-		if (sent_account_pair->second <= seen_account_pair.second) {
-			sent_account_pair->second = time(nullptr);
+		for(const auto &seen_account_pair : all_seen_accounts ) {
+			auto insert_result = sent_accounts.insert( std::make_pair(seen_account_pair.first, 0) );
+			auto &sent_account_pair = insert_result.first;
 
-			JSON account_json;
-			Account::account_info_JSON( seen_account_pair.first, account_json );
+			if (sent_account_pair->second <= seen_account_pair.second) {
+				sent_account_pair->second = time(nullptr);
 
-			accounts_json_array.push_back( account_json );
+				JSON account_json;
+				Account::account_info_JSON( seen_account_pair.first, account_json );
+
+				accounts_json_array.push_back( account_json );
+			}
 		}
+		// mutex unlocked here in case sending websocket frame blocks for a while
 	}
 
 	if (accounts_json_array.size() > 0) {
@@ -302,35 +317,18 @@ Handlers::WS::updates::updates(MHD_socket sock, struct MHD_UpgradeResponseHandle
 void Handlers::WS::updates::websocket_alert_prepare() {
 	check_block();
 	check_shares();
+	check_awards();
 }
 
 
 void Handlers::WS::updates::websocket_alert() {
     pthread_set_name_np(pthread_self(), "updates-alert");
 
-
-    // Check db connection
-    short counter = 0;
-    while (true){
-        try{
-            DORM::DB::check_connection();
-            break;
-        } catch (const DORM::DB::connection_issue &e) {
-            // DB being hammered by miners - try again in a moment
-            std::cerr  << ftime() << "[updates::websocket_alert] Too many connections! " << e.getErrorCode() << ": " << e.what() << std::endl;
-            return;
-        } catch(const sql::SQLException &e) {
-            // Could not connect to db.
-            std::cerr << ftime() << "[updates::websocket_alert] " << e.what() << std::endl;
-            std::cerr << ftime() << "[updates::websocket_alert] Trying to connect in a moment. Attempt: " << counter + 1 <<  std::endl;
-            sleep(1);
-        }
-        ++counter;
-        if(counter + 1 == DB_CONNECTION_ATTEMPT_COUNT){
-            std::cerr << ftime() << "[updates::websocket_alert] DB connect failed..." << std::endl;
-            throw;
-        }
-    }
+    try {
+    	DORM::DB::check_connection();
+    } catch(const DORM::DB::connection_issue &e) {
+		return;
+	}
 
 	send_new_accounts();
 
