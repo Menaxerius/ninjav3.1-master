@@ -13,6 +13,7 @@ CREATE TABLE Accounts (
 			last_nonce_when				timestamp null default null,
 			primary key					(accountID)
 		);
+
 DROP TABLE IF EXISTS Blocks;
 CREATE TABLE Blocks (
 			blockID						bigint unsigned not null unique,
@@ -34,6 +35,7 @@ CREATE TABLE Blocks (
 			primary key					(blockID),
 			index						(is_our_block, has_been_shared)
 		);
+
 DROP TABLE IF EXISTS Bonuses;
 CREATE TABLE Bonuses (
 			bonusID						serial,
@@ -43,6 +45,19 @@ CREATE TABLE Bonuses (
 			primary key					(bonusID),
 			index						(tx_id)
 		);
+
+DROP TABLE IF EXISTS Fees;
+CREATE TABLE Fees (
+            feeID						serial,
+            amount						bigint unsigned not null,
+            is_paid						boolean not null default false,
+            tx_id						bigint unsigned,
+            is_confirmed				boolean not null default false,
+            paid_at_block_id			bigint unsigned,
+            primary key					(feeID),
+            index						(is_paid, is_confirmed)
+);
+
 DROP TABLE IF EXISTS Nonces;
 CREATE TABLE Nonces (
 			accountID					bigint unsigned not null,
@@ -57,6 +72,7 @@ CREATE TABLE Nonces (
 			index						(blockID, accountID),
 			index						(blockID, deadline desc)
 		);
+
 DROP TABLE IF EXISTS Rewards;
 CREATE TABLE Rewards (
 			rewardID					serial,
@@ -71,6 +87,7 @@ CREATE TABLE Rewards (
 			primary key					(rewardID),
 			index						(is_paid, is_confirmed, accountID, blockID)
 		);
+
 DROP TABLE IF EXISTS Shares;
 CREATE TABLE Shares (
 			blockID						bigint unsigned not null,
