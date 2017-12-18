@@ -42,7 +42,7 @@ std-clean:
 ${OUTPUT_DIR}/src/BaseHandler.o: ${OUTPUT_DIR}/handlers/handlers.cxx
 
 
-${OUTPUT_DIR}/server: ${OUTPUT_DIR}/libHandlers.so ${OUTPUT_DIR}/src/BaseHandler.o ${OUTPUT_DIR}/src/config.o
+${OUTPUT_DIR}/server: ${OUTPUT_DIR}/libHandlers.a ${OUTPUT_DIR}/src/BaseHandler.o ${OUTPUT_DIR}/src/config.o
 	@echo '--> Building server'
 	@${CXX} ${CXXFLAGS} ${LDFLAGS} ${addprefix -L,${LIBDIRS}} -o $@ $^ ${addprefix -l,${LIBS}}
 

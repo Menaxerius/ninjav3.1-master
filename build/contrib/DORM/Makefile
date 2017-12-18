@@ -40,7 +40,7 @@ endif
 INCDIRS=include
 CXXFLAGS+=${addprefix -I, ${INCDIRS}} -isystem /usr/local/include
 
-all: lib/libDORM.so bin/generate_object bin/emit_object_SQL
+all: lib/libDORM.a bin/generate_object bin/emit_object_SQL
 
 .PHONY: clean
 clean:
@@ -70,10 +70,11 @@ bin/%: src/%.cpp
 	@mkdir -p `dirname $@`
 	@${CXX} ${CXXFLAGS} -o $@ $<
 
-lib/libDORM.so: ${OBJS}
+lib/libDORM.a: ${OBJS}
 	@echo 'Building shared library $@'
 	@mkdir -p `dirname $@`
-	@${CXX} ${CXXFLAGS} -shared -Wl,-soname,libDORM.so -o $@ $^
+	@rm -f $@
+	@ar -r $@ ${OBJS}
 
 
 ifdef DEBUG
@@ -100,7 +101,7 @@ test-all: bin/emit_object_SQL ${TESTBINS}
 	done
 	
 test-all-coverage:
-	@${LLVM_COV} report --instr-profile tests.profdata lib/libDORM.so
+	@${LLVM_COV} report --instr-profile tests.profdata lib/libDORM.a
 
 tests/bin/%: tests/%.cpp ${OBJS} ${TESTOBJS}
 	@echo 'Building test $@ from $<'

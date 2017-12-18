@@ -25,12 +25,12 @@ CXXFLAGS+=${addprefix -I,${INCDIRS}} -isystem /usr/local/include
 LDFLAGS=-shared -Wl,-soname,${SOLIB} -Wl,-rpath=output
 
 
-all: ${OUTPUT_DIR}/../${SOLIB} ${OUTPUT_DIR}/static-templates.cxx ${OUTPUT_DIR}/static-templates.hxx
+all: ${OUTPUT_DIR}/../${ALIB} ${OUTPUT_DIR}/static-templates.cxx ${OUTPUT_DIR}/static-templates.hxx
 
 
 clean:
 	@echo '--> Cleaning'
-	@rm -fr ${OUTPUT_DIR} ${OUTPUT_DIR}/../${SOLIB}
+	@rm -fr ${OUTPUT_DIR} ${OUTPUT_DIR}/../${ALIB}
 
 
 ${OUTPUT_DIR}/%.d: ${OUTPUT_DIR}/%.cxx

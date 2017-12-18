@@ -3,7 +3,7 @@ OBJS=${patsubst src/%.cpp, obj/%.o, ${SRCS}}
 
 DORMDIR=contrib/DORM
 SRCDORM=${DORMDIR}/Makefile
-LIBDORM=${DORMDIR}/lib/libDORM.so
+LIBDORM=${DORMDIR}/lib/libDORM.a
 
 # all these need to go into WWW library 
 WWW=Handler RegistryHandler ReqResp Request Response StaticHandler StaticTemplateHandler config_loader server
@@ -28,7 +28,7 @@ endif
 .PATH: src include obj lib
 .SUFFIXES: .o .cpp .hpp .so .a
 
-all: lib/libDomWWW.so lib/libDomUtil.so
+all: lib/libDomWWW.a lib/libDomUtil.a
 
 clean:
 	@rm -fr lib obj
@@ -39,14 +39,16 @@ ${SRCDORM}:
 ${LIBDORM}: ${SRCDORM}
 	@(cd ${DORMDIR}; gmake)
 
-lib/libDomWWW.so: ${WWW_OBJS}
+lib/libDomWWW.a: ${WWW_OBJS}
 	@mkdir -p `dirname $@`
-	${CXX} ${CXXFLAGS} -shared -Wl,-soname,libDomWWW.so -o $@ $^
+	@rm -f $@
+	@ar -r $@ ${WWW_OBJS}
 
 
-lib/libDomUtil.so: ${UTIL_OBJS}
+lib/libDomUtil.a: ${UTIL_OBJS}
 	@mkdir -p `dirname $@`
-	${CXX} ${CXXFLAGS} -shared -Wl,-soname,libDomUtil.so -o $@ $^
+	@rm -f $@
+	@ar -r $@ ${UTIL_OBJS}
 
 
 obj/%.o: src/%.cpp include/%.hpp

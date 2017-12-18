@@ -24,10 +24,11 @@ CXXFLAGS+=${addprefix -I,${INCDIRS}} -isystem /usr/local/include
 
 LDFLAGS=-shared -Wl,-soname,${SOLIB} -Wl,-rpath=output
 
-all: ${OUTPUT_DIR}/../${SOLIB} ${OUTPUT_DIR}/handlers.hxx ${OUTPUT_DIR}/handlers.cxx
+all: ${OUTPUT_DIR}/../${ALIB} ${OUTPUT_DIR}/handlers.hxx ${OUTPUT_DIR}/handlers.cxx
 
 clean:
 	@echo '--> Cleaning'
+	@rm -fr ${OUTPUT_DIR} ${OUTPUT_DIR}/../${ALIB}
 	@rm -fr ${OUTPUT_DIR} ${OUTPUT_DIR}/../${SOLIB}
 
 
