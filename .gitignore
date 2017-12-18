@@ -11,6 +11,7 @@ server.log.old
 
 # Compile time files
 *.o
+*.a
 *.so
 *.d
 *.hxx
